@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<title>Web Audio API Vocal Remover</title>
+<style>
+body { background:#111; color:#fff; font-family:Arial; padding:20px; }
+button { margin:10px 0; padding:10px; cursor:pointer; }
+</style>
+</head>
+<body>
+
+<h1>🎧 Vocal Remover (Pure Web Audio API)</h1>
+
+<input type="file" id="file" accept="audio/*">
+<br>
+
+<button onclick="playOriginal()">▶ Original</button>
+<button onclick="processAndPlay()">🎤 Remove Vocals</button>
+<button onclick="downloadWav()">⬇ Download WAV</button>
+
+<script>
+let ctx;
+let originalBuffer;
+let processedBuffer;
+
+document.getElementById("file").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+
+  ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+  const arrayBuffer = await file.arrayBuffer();
+  originalBuffer = await ctx.decodeAudioData(arrayBuffer);
+
+  alert("Загружено!");
+});
+
+function playBuffer(buffer) {
+  const src = ctx.createBufferSource();
+  src.buffer = buffer;
+  src.connect(ctx.destination);
+  src.start();
+}
+
+function playOriginal() {
+  playBuffer(originalBuffer);
+}
+
+function processAndPlay() {
+  processedBuffer = vocalRemove(originalBuffer);
+  playBuffer(processedBuffer);
+}
+
+/* =========================
+   🎛 VOCAL REMOVAL PIPELINE
+========================= */
+function vocalRemove(buffer) {
+  const length = buffer.length;
+  const sampleRate = buffer.sampleRate;
+
+  const output = ctx.createBuffer(2, length, sampleRate);
+
+  const L = buffer.getChannelData(0);
+  const R = buffer.getChannelData(1);
+
+  const outL = output.getChannelData(0);
+  const outR = output.getChannelData(1);
+
+  for (let i = 0; i < length; i++) {
+
+    // 1. center cancel (убираем моно-центр)
+    let mid = (L[i] + R[i]) * 0.5;
+    let side = (L[i] - R[i]) * 0.5;
+
+    // 2. high-pass (убираем низ — часто там бас + вокал тело)
+    side = highPass(side, i);
+
+    // 3. mid scoop (приблизительно убираем диапазон голоса)
+    side = midCut(side);
+
+    // 4. stereo enhancement
+    outL[i] = side;
+    outR[i] = -side;
+  }
+
+  return output;
+}
+
+/* ===== простые цифровые фильтры ===== */
+
+// простой HPF (очень грубый)
+let prev = 0;
+function highPass(x) {
+  const alpha = 0.95;
+  const y = alpha * (prev + x - (prev || 0));
+  prev = x;
+  return y;
+}
+
+// mid cut (грубая "эквализация")
+function midCut(x) {
+  return x * 0.7;
+}
+
+/* =========================
+   WAV EXPORT
+========================= */
+function exportWav(buffer) {
+  const numCh = buffer.numberOfChannels;
+  const length = buffer.length * numCh * 2 + 44;
+
+  const wav = new ArrayBuffer(length);
+  const view = new DataView(wav);
+
+  const write = (o,s)=>{
+    for(let i=0;i<s.length;i++) view.setUint8(o+i,s.charCodeAt(i));
+  };
+
+  write(0,'RIFF');
+  view.setUint32(4,36 + buffer.length*numCh*2,true);
+  write(8,'WAVE');
+  write(12,'fmt ');
+  view.setUint32(16,16,true);
+  view.setUint16(20,1,true);
+  view.setUint16(22,numCh,true);
+  view.setUint32(24,buffer.sampleRate,true);
+  view.setUint32(28,buffer.sampleRate*numCh*2,true);
+  view.setUint16(32,numCh*2,true);
+  view.setUint16(34,16,true);
+  write(36,'data');
+  view.setUint32(40,buffer.length*numCh*2,true);
+
+  let offset = 44;
+
+  for(let i=0;i<buffer.length;i++){
+    for(let ch=0;ch<numCh;ch++){
+      let sample = buffer.getChannelData(ch)[i];
+      sample = Math.max(-1,Math.min(1,sample));
+      view.setInt16(offset, sample*0x7FFF,true);
+      offset+=2;
+    }
+  }
+
+  return wav;
+}
+
+function downloadWav() {
+  if(!processedBuffer) return alert("Сначала обработай звук");
+
+  const wav = exportWav(processedBuffer);
+  const blob = new Blob([wav], {type:"audio/wav"});
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "no_vocals.wav";
+  a.click();
+}
+</script>
+
+</body>
+</html>
