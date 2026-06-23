@@ -2,24 +2,184 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8" />
-<title>Web Audio API Vocal Remover</title>
+<title>Spotify Web Audio Vocal Remover</title>
+
 <style>
-body { background:#111; color:#fff; font-family:Arial; padding:20px; }
-button { margin:10px 0; padding:10px; cursor:pointer; }
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #0b0b0f;
+  color: white;
+  display: flex;
+  height: 100vh;
+}
+
+/* ===== SIDEBAR ===== */
+.sidebar {
+  width: 240px;
+  background: #000;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.logo {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #1db954;
+}
+
+.nav-item {
+  padding: 10px;
+  margin: 5px 0;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #aaa;
+  transition: 0.2s;
+}
+
+.nav-item:hover {
+  background: #1a1a1a;
+  color: white;
+}
+
+/* ===== MAIN ===== */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== TOP BAR ===== */
+.topbar {
+  background: #121212;
+  padding: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.search {
+  background: #242424;
+  border: none;
+  padding: 10px;
+  border-radius: 20px;
+  width: 300px;
+  color: white;
+}
+
+/* ===== CONTENT ===== */
+.content {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 15px;
+}
+
+.card {
+  background: #181818;
+  padding: 15px;
+  border-radius: 10px;
+  transition: 0.2s;
+  cursor: pointer;
+}
+
+.card:hover {
+  background: #282828;
+  transform: scale(1.03);
+}
+
+/* ===== PLAYER ===== */
+.player {
+  height: 80px;
+  background: #181818;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  border-top: 1px solid #333;
+}
+
+/* ===== BUTTONS ===== */
+button {
+  background: #1db954;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  color: black;
+  font-weight: bold;
+  margin: 5px;
+  transition: 0.2s;
+}
+
+button:hover {
+  background: #1ed760;
+  transform: scale(1.05);
+}
+
+input[type="file"] {
+  color: white;
+}
 </style>
 </head>
+
 <body>
 
-<h1>🎧 Vocal Remover (Pure Web Audio API)</h1>
+<!-- ===== SIDEBAR ===== -->
+<div class="sidebar">
+  <div class="logo">🎧 Gorteys Audio</div>
 
-<input type="file" id="file" accept="audio/*">
-<br>
+  <div class="nav-item">🏠 Home</div>
+  <div class="nav-item">🔎 Search</div>
+  <div class="nav-item">📚 Library</div>
+  <div class="nav-item" onclick="goWiki()">📖 Wiki</div>
+</div>
 
-<button onclick="playOriginal()">▶ Original</button>
-<button onclick="processAndPlay()">🎤 Remove Vocals</button>
-<button onclick="downloadWav()">⬇ Download WAV</button>
+<!-- ===== MAIN ===== -->
+<div class="main">
+
+  <!-- TOP -->
+  <div class="topbar">
+    <input class="search" placeholder="Search music...">
+    <input type="file" id="file" accept="audio/*">
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+    <h2>🔥 Your Audio Tools</h2>
+
+    <div class="cards">
+      <div class="card" onclick="playOriginal()">▶ Original</div>
+      <div class="card" onclick="processAndPlay()">🎤 Remove Vocals</div>
+      <div class="card" onclick="downloadWav()">⬇ Download</div>
+    </div>
+
+    <h3 style="margin-top:20px;">🎚 Controls</h3>
+    <button onclick="playOriginal()">▶ Play</button>
+    <button onclick="processAndPlay()">🎤 Remove Vocals</button>
+    <button onclick="downloadWav()">⬇ Export WAV</button>
+  </div>
+
+</div>
+
+<!-- ===== PLAYER ===== -->
+<div class="player">
+  <div>🎵 Now Playing</div>
+  <div>
+    <button onclick="playOriginal()">▶</button>
+    <button onclick="processAndPlay()">🎤</button>
+  </div>
+</div>
 
 <script>
+
 let ctx;
 let originalBuffer;
 let processedBuffer;
@@ -32,7 +192,7 @@ document.getElementById("file").addEventListener("change", async (e) => {
   const arrayBuffer = await file.arrayBuffer();
   originalBuffer = await ctx.decodeAudioData(arrayBuffer);
 
-  alert("Загружено!");
+  alert("🎧 Аудио загружено!");
 });
 
 function playBuffer(buffer) {
@@ -43,17 +203,17 @@ function playBuffer(buffer) {
 }
 
 function playOriginal() {
+  if (!originalBuffer) return alert("Загрузи файл!");
   playBuffer(originalBuffer);
 }
 
 function processAndPlay() {
+  if (!originalBuffer) return alert("Загрузи файл!");
   processedBuffer = vocalRemove(originalBuffer);
   playBuffer(processedBuffer);
 }
 
-/* =========================
-   🎛 VOCAL REMOVAL PIPELINE
-========================= */
+/* ===== VOCAL REMOVER ===== */
 function vocalRemove(buffer) {
   const length = buffer.length;
   const sampleRate = buffer.sampleRate;
@@ -66,19 +226,21 @@ function vocalRemove(buffer) {
   const outL = output.getChannelData(0);
   const outR = output.getChannelData(1);
 
+  let prev = 0;
+
   for (let i = 0; i < length; i++) {
 
-    // 1. center cancel (убираем моно-центр)
     let mid = (L[i] + R[i]) * 0.5;
     let side = (L[i] - R[i]) * 0.5;
 
-    // 2. high-pass (убираем низ — часто там бас + вокал тело)
-    side = highPass(side, i);
+    // simple high-pass
+    const alpha = 0.95;
+    side = alpha * (prev + side - (prev || 0));
+    prev = side;
 
-    // 3. mid scoop (приблизительно убираем диапазон голоса)
-    side = midCut(side);
+    // mid cut
+    side *= 0.7;
 
-    // 4. stereo enhancement
     outL[i] = side;
     outR[i] = -side;
   }
@@ -86,26 +248,12 @@ function vocalRemove(buffer) {
   return output;
 }
 
-/* ===== простые цифровые фильтры ===== */
+/* ===== WAV EXPORT ===== */
+function downloadWav() {
+  if (!processedBuffer) return alert("Сначала обработай звук!");
 
-// простой HPF (очень грубый)
-let prev = 0;
-function highPass(x) {
-  const alpha = 0.95;
-  const y = alpha * (prev + x - (prev || 0));
-  prev = x;
-  return y;
-}
+  const buffer = processedBuffer;
 
-// mid cut (грубая "эквализация")
-function midCut(x) {
-  return x * 0.7;
-}
-
-/* =========================
-   WAV EXPORT
-========================= */
-function exportWav(buffer) {
   const numCh = buffer.numberOfChannels;
   const length = buffer.length * numCh * 2 + 44;
 
@@ -141,21 +289,20 @@ function exportWav(buffer) {
     }
   }
 
-  return wav;
-}
-
-function downloadWav() {
-  if(!processedBuffer) return alert("Сначала обработай звук");
-
-  const wav = exportWav(processedBuffer);
   const blob = new Blob([wav], {type:"audio/wav"});
-
   const url = URL.createObjectURL(blob);
+
   const a = document.createElement("a");
   a.href = url;
   a.download = "no_vocals.wav";
   a.click();
 }
+
+/* ===== WIKI ===== */
+function goWiki() {
+  window.location.href = "/wiki/wiki.html";
+}
+
 </script>
 
 </body>
