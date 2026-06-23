@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gorteys Wiki — Удаление вокала | ChatGPT</title>
+    <style>
+        /* === Стиль в духе Fandom / Вики === */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0b0e14;
+            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            color: #e6e9f0;
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .wiki-wrapper {
+            max-width: 1100px;
+            width: 100%;
+            background: #141a24;
+            border-radius: 28px;
+            box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px #2a3240 inset;
+            padding: 30px 30px 40px;
+            transition: all 0.2s;
+        }
+
+        .wiki-header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid #2d3748;
+            padding-bottom: 18px;
+            margin-bottom: 28px;
+        }
+
+        .wiki-title {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .wiki-title h1 {
+            font-size: 2.2rem;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #f0c060, #e8b04a);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 12px rgba(240, 192, 96, 0.15);
+        }
+
+        .wiki-title .badge {
+            background: #2d3748;
+            padding: 4px 14px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #b0c4de;
+            letter-spacing: 0.3px;
+            border: 1px solid #3e4a5e;
+        }
+
+        .wiki-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: #f0c060;
+            color: #0b0e14;
+            font-weight: 700;
+            font-size: 1.1rem;
+            padding: 12px 28px;
+            border-radius: 60px;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #a07c30, 0 6px 16px rgba(240, 192, 96, 0.25);
+            letter-spacing: 0.3px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 #a07c30, 0 12px 28px rgba(240, 192, 96, 0.4);
+            background: #f5d07a;
+        }
+
+        .btn-primary:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #a07c30;
+        }
+
+        .btn-primary svg {
+            width: 22px;
+            height: 22px;
+            fill: currentColor;
+        }
+
+        .wiki-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin-top: 8px;
+        }
+
+        @media (max-width: 780px) {
+            .wiki-grid {
+                grid-template-columns: 1fr;
+                gap: 24px;
+            }
+            .wiki-title h1 {
+                font-size: 1.8rem;
+            }
+            .wiki-header {
+                flex-direction: column;
+                align-items: start;
+                gap: 16px;
+            }
+            .wiki-actions {
+                width: 100%;
+                justify-content: flex-start;
+            }
+            .btn-primary {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        .main-article {
+            background: #1a222e;
+            border-radius: 18px;
+            padding: 22px 26px;
+            border: 1px solid #2a3342;
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3);
+        }
+
+        .main-article h2 {
+            font-size: 1.8rem;
+            font-weight: 500;
+            color: #f2e9d0;
+            border-bottom: 1px solid #2f3b4e;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .main-article h2 span {
+            background: #2d3748;
+            font-size: 0.9rem;
+            padding: 2px 14px;
+            border-radius: 30px;
+            font-weight: 400;
+            color: #b8c9e8;
+        }
+
+        .main-article p {
+            margin-bottom: 18px;
+            color: #cfd8e6;
+            font-size: 1.05rem;
+        }
+
+        .main-article .feature-callout {
+            background: #10171f;
+            border-left: 5px solid #f0c060;
+            padding: 16px 20px;
+            border-radius: 10px;
+            margin: 24px 0 18px;
+            color: #dce3ef;
+            font-weight: 400;
+            box-shadow: inset 0 0 0 1px #28303e;
+        }
+
+        .main-article .feature-callout strong {
+            color: #f5d07a;
+        }
+
+        .wiki-divider {
+            height: 1px;
+            background: linear-gradient(90deg, #2d3748, transparent);
+            margin: 26px 0 20px;
+        }
+
+        .sidebar {
+            background: #1a222e;
+            border-radius: 18px;
+            padding: 22px 20px;
+            border: 1px solid #2a3342;
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3);
+            align-self: start;
+        }
+
+        .sidebar h3 {
+            font-size: 1.3rem;
+            font-weight: 500;
+            color: #e8dcc0;
+            border-bottom: 1px solid #2f3b4e;
+            padding-bottom: 14px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .sidebar ul li {
+            padding: 10px 0 10px 8px;
+            border-bottom: 1px solid #232d3b;
+            color: #bcc7db;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.98rem;
+        }
+
+        .sidebar ul li:last-child {
+            border-bottom: none;
+        }
+
+        .sidebar .wiki-stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #232d3b;
+            color: #bcc7db;
+        }
+
+        .sidebar .wiki-stat .label {
+            color: #8e9db3;
+        }
+
+        .sidebar .wiki-stat .value {
+            color: #f0e6d0;
+            font-weight: 500;
+        }
+
+        .sidebar .btn-secondary {
+            display: block;
+            background: #2d3748;
+            text-align: center;
+            padding: 12px 0;
+            border-radius: 40px;
+            color: #cbd5e6;
+            font-weight: 600;
+            text-decoration: none;
+            margin-top: 24px;
+            border: 1px solid #3e4a5e;
+            transition: 0.15s;
+        }
+
+        .sidebar .btn-secondary:hover {
+            background: #38445a;
+            color: #fff;
+            border-color: #5a6a82;
+        }
+
+        .wiki-footer {
+            margin-top: 36px;
+            padding-top: 22px;
+            border-top: 1px solid #212b38;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            color: #6e7d94;
+            font-size: 0.9rem;
+        }
+
+        .wiki-footer a {
+            color: #b0c4de;
+            text-decoration: none;
+            border-bottom: 1px dotted #3a465a;
+        }
+
+        .wiki-footer a:hover {
+            color: #f0c060;
+            border-bottom-color: #f0c060;
+        }
+
+        .btn-primary .mobile-hide {
+            display: inline;
+        }
+        @media (max-width: 480px) {
+            .btn-primary .mobile-hide {
+                display: none;
+            }
+            .btn-primary {
+                font-size: 1rem;
+                padding: 12px 18px;
+            }
+        }
+
+        .tech-tag {
+            display: inline-block;
+            background: #1f2a38;
+            padding: 3px 14px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            color: #b8c9e8;
+            border: 1px solid #31405a;
+            margin-right: 8px;
+            margin-bottom: 6px;
+        }
+        .feature-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 12px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="wiki-wrapper">
+        <!-- ШАПКА -->
+        <header class="wiki-header">
+            <div class="wiki-title">
+                <h1>Gorteys Wiki</h1>
+                <span class="badge">Fandom</span>
+            </div>
+            <div class="wiki-actions">
+                <!-- КНОПКА ПЕРЕЙТИ НА GORTEYS.GITHUB.IO -->
+                <a href="https://gorteys.github.io/" target="_blank" rel="noopener noreferrer" class="btn-primary">
+                    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.15 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.62.24 2.85.12 3.15.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+                    </svg>
+                    <span class="mobile-hide">Перейти на </span>gorteys.github.io
+                </a>
+            </div>
+        </header>
+
+        <!-- ОСНОВНАЯ СЕТКА -->
+        <div class="wiki-grid">
+            <!-- Левая колонка: статья -->
+            <main class="main-article">
+                <h2>
+                    🎤 Удаление вокала
+                    <span>AI-инструмент</span>
+                </h2>
+                <p>
+                    <strong>gorteys.github.io</strong> — это веб-приложение, созданное <strong>ChatGPT</strong>, 
+                    которое позволяет <strong>удалять вокал</strong> из аудиотреков прямо в браузере. 
+                    Сервис использует современные алгоритмы обработки звука и нейросетевые модели для 
+                    выделения инструментальной части песни.
+                </p>
+                <div class="feature-callout">
+                    🧠 <strong>Создан ChatGPT:</strong> Код, архитектура и логика работы разработаны 
+                    с использованием возможностей искусственного интеллекта OpenAI. 
+                    Инструмент доступен бесплатно и не требует установки.
+                </div>
+
+                <div class="wiki-divider"></div>
+
+                <h2 style="font-size: 1.4rem; border-bottom: none; padding-bottom: 0; margin-bottom: 14px;">
+                    ⚙️ Как это работает
+                </h2>
+                <ul style="list-style: none; padding-left: 0; color: #bcc7db; display: flex; flex-direction: column; gap: 10px;">
+                    <li style="display: flex; align-items: flex-start; gap: 12px;">
+                        <span style="color: #f0c060;">1.</span>
+                        Загрузите аудиофайл (MP3, WAV, FLAC) через интерфейс сайта.
+                    </li>
+                    <li style="display: flex; align-items: flex-start; gap: 12px;">
+                        <span style="color: #f0c060;">2.</span>
+                        Алгоритм на основе <strong>глубокого обучения</strong> разделяет вокал и инструментал.
+                    </li>
+                    <li style="display: flex; align-items: flex-start; gap: 12px;">
+                        <span style="color: #f0c060;">3.</span>
+                        Вы получаете два трека: <strong>инструментал</strong> (без вокала) и <strong>а капелла</strong> (только голос).
+                    </li>
+                    <li style="display: flex; align-items: flex-start; gap: 12px;">
+                        <span style="color: #f0c060;">4.</span>
+                        Готовые файлы можно скачать и использовать в своих проектах.
+                    </li>
+                </ul>
+
+                <div style="margin-top: 22px; background: #0f161f; padding: 14px 18px; border-radius: 12px; border: 1px solid #26303e;">
+                    <span style="color: #b0c4de;">🤖 </span>
+                    <span style="color: #d2def0;">Создано ChatGPT — </span>
+                    <span style="color: #f0c060;">модель GPT-4, 2026</span>
+                </div>
+            </main>
+
+            <!-- Правая колонка: информация -->
+            <aside class="sidebar">
+                <h3>
+                    <span>📋</span> О проекте
+                </h3>
+                <div class="wiki-stat">
+                    <span class="label">Название</span>
+                    <span class="value">Gorteys Vocal Remover</span>
+                </div>
+                <div class="wiki-stat">
+                    <span class="label">Создатель</span>
+                    <span class="value">ChatGPT (OpenAI)</span>
+                </div>
+                <div class="wiki-stat">
+                    <span class="label">Платформа</span>
+                    <span class="value">GitHub Pages</span>
+                </div>
+                <div class="wiki-stat">
+                    <span class="label">Технологии</span>
+                    <span class="value">Web Audio API · AI</span>
+                </div>
+                <div class="wiki-stat" style="border-bottom: none;">
+                    <span class="label">Статус</span>
+                    <span class="value" style="color: #7fdb9a;">● Активен</span>
+                </div>
+
+                <h3 style="margin-top: 30px; border-bottom-color: #2f3b4e;">
+                    <span>🎯</span> Ключевые особенности
+                </h3>
+                <ul>
+                    <li>🔊 <span style="color: #d2def0;">Изоляция вокала</span></li>
+                    <li>🎵 <span style="color: #d2def0;">Извлечение инструментала</span></li>
+                    <li>⚡ <span style="color: #d2def0;">Обработка в реальном времени</span></li>
+                    <li>📁 <span style="color: #d2def0;">Поддержка MP3, WAV, FLAC</span></li>
+                    <li>🌐 <span style="color: #d2def0;">Работает в браузере</span></li>
+                </ul>
+
+                <div style="margin-top: 16px; display: flex; flex-wrap: wrap; gap: 6px;">
+                    <span class="tech-tag">#AI</span>
+                    <span class="tech-tag">#audio</span>
+                    <span class="tech-tag">#vocalremoval</span>
+                    <span class="tech-tag">#chatgpt</span>
+                </div>
+
+                <!-- Дублируем кнопку для удобства -->
+                <a href="https://gorteys.github.io/" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+                    🚀 Открыть gorteys.github.io
+                </a>
+                <div style="margin-top: 16px; font-size: 0.85rem; color: #6e7d94; text-align: center; border-top: 1px solid #232d3b; padding-top: 14px;">
+                    <span>Wiki v2.0 · Fandom style</span>
+                </div>
+            </aside>
+        </div>
+
+        <!-- Футер -->
+        <footer class="wiki-footer">
+            <span>Gorteys Wiki — инструмент для удаления вокала от ChatGPT</span>
+            <span>
+                <a href="https://gorteys.github.io/" target="_blank" rel="noopener noreferrer">gorteys.github.io</a> 
+                &nbsp;·&nbsp; Сделано с ❤️
+            </span>
+        </footer>
+    </div>
+</body>
+</html>
