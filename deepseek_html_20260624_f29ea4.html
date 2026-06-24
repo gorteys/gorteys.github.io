@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🖼️ Графический редактор</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .container { max-width: 1000px; width: 100%; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #333; }
+        
+        /* Холст и панель инструментов */
+        .editor-area { display: flex; flex-direction: column; align-items: center; margin-top: 10px; }
+        .canvas-wrapper { border: 2px dashed #ccc; background: #fafafa; padding: 10px; border-radius: 8px; display: inline-block; }
+        canvas { display: block; max-width: 100%; height: auto; cursor: crosshair; }
+        
+        .tools { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 15px 0; padding: 10px; background: #f8f9fa; border-radius: 8px; }
+        .tools label { font-weight: bold; display: flex; align-items: center; gap: 5px; }
+        input[type="color"] { width: 40px; height: 40px; border: none; cursor: pointer; padding: 0; }
+        input[type="range"] { width: 100px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; }
+        .btn-primary { background: #007bff; }
+        .btn-primary:hover { background: #0056b3; }
+        .btn-danger { background: #dc3545; }
+        .btn-danger:hover { background: #c82333; }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #218838; }
+        .btn-warning { background: #ffc107; color: black; }
+        .btn-warning:hover { background: #e0a800; }
+        
+        /* Секция загрузки */
+        .upload-section { text-align: center; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #ddd; }
+        .upload-btn-wrapper { position: relative; overflow: hidden; display: inline-block; }
+        .upload-btn-wrapper input[type=file] { font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🖼️ Графический редактор</h1>
+
+    <!-- Загрузка файла -->
+    <div class="upload-section">
+        <div class="upload-btn-wrapper">
+            <button class="btn btn-primary">📂 Загрузить картинку</button>
+            <input type="file" id="fileInput" accept="image/*" />
+        </div>
+        <span style="margin-left: 10px; font-size: 14px; color: #666;">Загрузите картинку, чтобы начать рисовать</span>
+    </div>
+
+    <!-- Инструменты -->
+    <div class="tools">
+        <label>🎨 Цвет: <input type="color" id="colorPicker" value="#ff0000"></label>
+        <label>✏️ Размер: <input type="range" id="sizePicker" min="1" max="50" value="5"></label>
+        <button class="btn btn-primary" id="penBtn">✏️ Кисть</button>
+        <button class="btn btn-warning" id="eraserBtn">🧹 Ластик</button>
+        <button class="btn btn-danger" id="clearBtn">🗑️ Очистить холст</button>
+        <button class="btn btn-success" id="saveOriginalBtn">💾 Скачать Оригинал</button>
+        <button class="btn btn-success" id="saveEditedBtn">💾 Скачать Обработку</button>
+    </div>
+
+    <!-- Холст для рисования -->
+    <div class="editor-area">
+        <div class="canvas-wrapper">
+            <canvas id="drawCanvas"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Получаем элементы
+    const canvas = document.getElementById('drawCanvas');
+    const ctx = canvas.getContext('2d');
+    const fileInput = document.getElementById('fileInput');
+    const colorPicker = document.getElementById('colorPicker');
+    const sizePicker = document.getElementById('sizePicker');
+    const penBtn = document.getElementById('penBtn');
+    const eraserBtn = document.getElementById('eraserBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const saveOriginalBtn = document.getElementById('saveOriginalBtn');
+    const saveEditedBtn = document.getElementById('saveEditedBtn');
+
+    // Переменные для рисования
+    let isDrawing = false;
+    let lastX = 0;
+    let lastY = 0;
+    let currentTool = 'pen'; // 'pen' или 'eraser'
+    let originalImageData = null; // Для хранения оригинала (чтобы скачать)
+    let originalWidth = 0;
+    let originalHeight = 0;
+
+    // Загрузка картинки
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const img = new Image();
+            img.onload = function() {
+                // Устанавливаем размеры холста под картинку (макс 800px)
+                const maxWidth = 800;
+                let width = img.width;
+                let height = img.height;
+                if (width > maxWidth) {
+                    height = (height * maxWidth) / width;
+                    width = maxWidth;
+                }
+                canvas.width = width;
+                canvas.height = height;
+                originalWidth = img.width;
+                originalHeight = img.height;
+
+                // Рисуем картинку на холсте
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // Сохраняем оригинал (данные картинки и размеры)
+                originalImageData = {
+                    dataUrl: event.target.result,
+                    width: originalWidth,
+                    height: originalHeight
+                };
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // Рисование (Pen)
+    function draw(e) {
+        if (!isDrawing) return;
+        
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+        const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
+        ctx.lineTo(x, y);
+        ctx.strokeStyle = currentTool === 'eraser' ? '#FFFFFF' : colorPicker.value;
+        ctx.lineWidth = sizePicker.value;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+
+        lastX = x;
+        lastY = y;
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+        isDrawing = true;
+        const rect = canvas.getBoundingClientRect();
+        lastX = (e.clientX - rect.left) * (canvas.width / rect.width);
+        lastY = (e.clientY - rect.top) * (canvas.height / rect.height);
+    });
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', () => isDrawing = false);
+    canvas.addEventListener('mouseout', () => isDrawing = false);
+
+    // Кнопки инструментов
+    penBtn.addEventListener('click', () => { currentTool = 'pen'; });
+    eraserBtn.addEventListener('click', () => { currentTool = 'eraser'; });
+
+    // Очистить холст (удаляет всё нарисованное)
+    clearBtn.addEventListener('click', () => {
+        if (confirm('Очистить всё нарисованное?')) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+    });
+
+    // Скачать Оригинал
+    saveOriginalBtn.addEventListener('click', () => {
+        if (!originalImageData) {
+            alert('Сначала загрузите картинку!');
+            return;
+        }
+        const link = document.createElement('a');
+        link.download = 'original.png';
+        link.href = originalImageData.dataUrl;
+        link.click();
+    });
+
+    // Скачать Обработку (то, что на холсте сейчас)
+    saveEditedBtn.addEventListener('click', () => {
+        if (!originalImageData) {
+            alert('Сначала загрузите картинку!');
+            return;
+        }
+        // Экспортируем холст в PNG
+        const link = document.createElement('a');
+        link.download = 'edited_image.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    });
+</script>
+
+</body>
+</html>
