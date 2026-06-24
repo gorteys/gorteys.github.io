@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RuHub</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0d1117;color:#c9d1d9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;line-height:1.5;padding:0 20px}
+        .container{max-width:1280px;margin:0 auto;padding:20px 0 40px}
+        .header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;padding:16px 0;border-bottom:1px solid #30363d;margin-bottom:28px}
+        .header-left{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+        .logo{display:flex;align-items:center;gap:6px;font-size:22px;font-weight:600;color:#f0f6fc;text-decoration:none}
+        .logo i{color:#f0f6fc;font-size:28px}
+        .logo span{letter-spacing:-.5px}
+        .header-nav{display:flex;gap:20px;font-size:14px;font-weight:500}
+        .header-nav a{color:#c9d1d9;text-decoration:none;transition:.2s}
+        .header-nav a:hover{color:#f0f6fc}
+        .header-right{display:flex;align-items:center;gap:16px}
+        .search-box{background:#161b22;border:1px solid #30363d;border-radius:6px;padding:5px 12px;display:flex;align-items:center;gap:8px;transition:.2s}
+        .search-box:focus-within{border-color:#58a6ff;background:#0d1117}
+        .search-box i{color:#8b949e;font-size:14px}
+        .search-box input{background:0 0;border:0;outline:0;color:#c9d1d9;font-size:14px;padding:6px 0;width:180px}
+        .search-box input::placeholder{color:#8b949e;font-weight:400}
+        .avatar{width:32px;height:32px;border-radius:50%;background:#30363d;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;color:#c9d1d9;border:1px solid #484f58;cursor:default;overflow:hidden}
+        .avatar img{width:100%;height:100%;object-fit:cover}
+        .login-btn{background:#238636;color:#fff;border:0;border-radius:6px;padding:5px 16px;font-size:14px;font-weight:500;cursor:pointer;transition:.2s}
+        .login-btn:hover{background:#2ea043}
+        .login-btn i{margin-right:6px}
+        .main-grid{display:grid;grid-template-columns:1fr 2.5fr;gap:30px;margin-top:10px}
+        .profile-card{background:#161b22;border-radius:12px;padding:24px 20px 20px;border:1px solid #30363d}
+        .profile-avatar-large{width:80px;height:80px;border-radius:50%;background:linear-gradient(145deg,#30363d,#1c2128);display:flex;align-items:center;justify-content:center;font-size:38px;font-weight:600;color:#f0f6fc;margin-bottom:16px;border:2px solid #484f58;overflow:hidden}
+        .profile-avatar-large img{width:100%;height:100%;object-fit:cover}
+        .profile-name{font-size:22px;font-weight:600;color:#f0f6fc}
+        .profile-handle{font-size:16px;color:#8b949e;margin-bottom:12px}
+        .profile-bio{font-size:14px;color:#c9d1d9;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid #30363d}
+        .profile-stats{display:flex;flex-direction:column;gap:8px;font-size:14px}
+        .profile-stats .stat-item{display:flex;align-items:center;gap:10px;color:#8b949e}
+        .profile-stats .stat-item i{width:18px;text-align:center;font-size:15px}
+        .profile-stats .stat-item strong{color:#c9d1d9;font-weight:600;margin-right:2px}
+        .profile-stats .stat-item span{color:#8b949e}
+        .profile-link{margin-top:18px;display:block;background:#21262d;border:1px solid #30363d;border-radius:6px;padding:8px 16px;text-align:center;font-weight:500;font-size:14px;color:#c9d1d9;text-decoration:none;transition:.2s}
+        .profile-link:hover{background:#30363d;border-color:#484f58}
+        .repo-header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;margin-bottom:20px}
+        .repo-header h2{font-size:18px;font-weight:600;color:#f0f6fc}
+        .repo-header h2 i{margin-right:8px;color:#8b949e;font-size:18px}
+        .repo-header .repo-count{background:#21262d;padding:2px 10px;border-radius:20px;font-size:13px;color:#c9d1d9;margin-left:10px}
+        .new-repo-btn{background:#238636;color:#fff;border:0;border-radius:6px;padding:6px 16px;font-size:14px;font-weight:500;display:flex;align-items:center;gap:6px;cursor:pointer;transition:.2s}
+        .new-repo-btn:hover{background:#2ea043}
+        .repo-list{display:flex;flex-direction:column;gap:4px;border:1px solid #30363d;border-radius:8px;overflow:hidden;background:#161b22}
+        .repo-item{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid #21262d;transition:.15s;background:#0d1117}
+        .repo-item:last-child{border-bottom:0}
+        .repo-item:hover{background:#161b22}
+        .repo-info{display:flex;flex-direction:column;gap:4px;flex:1 1 200px}
+        .repo-name{font-size:16px;font-weight:500;color:#58a6ff;cursor:pointer;text-decoration:none}
+        .repo-name i{margin-right:6px;font-size:14px;color:#8b949e}
+        .repo-name:hover{text-decoration:underline}
+        .repo-desc{font-size:13px;color:#8b949e;max-width:400px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .repo-meta{display:flex;align-items:center;gap:16px;font-size:13px;color:#8b949e;flex-wrap:wrap}
+        .repo-meta .lang-color{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:4px}
+        .repo-meta i{margin-right:4px;font-size:13px}
+        .repo-meta .stars,.repo-meta .forks{display:flex;align-items:center;gap:4px}
+        .repo-actions{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+        .repo-actions button,.repo-actions a{background:0 0;border:1px solid #30363d;color:#c9d1d9;border-radius:4px;padding:2px 10px;font-size:12px;cursor:pointer;transition:.2s;display:flex;align-items:center;gap:4px;text-decoration:none}
+        .repo-actions button:hover,.repo-actions a:hover{background:#21262d;border-color:#484f58}
+        .login-modal,.create-repo-modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);z-index:1000;justify-content:center;align-items:center}
+        .login-modal.active,.create-repo-modal.active{display:flex}
+        .login-box,.create-repo-box{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:32px;max-width:360px;width:100%}
+        .create-repo-box{max-width:420px}
+        .login-box h3,.create-repo-box h3{color:#f0f6fc;margin-bottom:16px;font-size:20px}
+        .login-box input,.create-repo-box input,.create-repo-box textarea{width:100%;padding:10px 12px;background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#c9d1d9;font-size:14px;margin-bottom:12px;outline:0;font-family:inherit}
+        .login-box input:focus,.create-repo-box input:focus,.create-repo-box textarea:focus{border-color:#58a6ff}
+        .create-repo-box textarea{resize:vertical;min-height:80px}
+        .login-box .login-submit,.create-repo-box .create-submit{width:100%;padding:10px;background:#238636;color:#fff;border:0;border-radius:6px;font-size:15px;font-weight:500;cursor:pointer;transition:.2s}
+        .login-box .login-submit:hover,.create-repo-box .create-submit:hover{background:#2ea043}
+        .login-box .login-close,.create-repo-box .create-close{float:right;background:0 0;border:0;color:#8b949e;font-size:20px;cursor:pointer}
+        .login-box .login-close:hover,.create-repo-box .create-close:hover{color:#f0f6fc}
+        .file-list{margin:8px 0 12px;background:#0d1117;border-radius:6px;padding:8px 12px;border:1px solid #30363d}
+        .file-list .file-item{display:flex;justify-content:space-between;padding:4px 0;font-size:13px;color:#8b949e;border-bottom:1px solid #21262d}
+        .file-list .file-item:last-child{border-bottom:0}
+        .file-list .file-item i{margin-right:8px;color:#58a6ff}
+        .add-file-btn{background:#21262d;border:1px solid #30363d;color:#c9d1d9;border-radius:4px;padding:4px 12px;font-size:12px;cursor:pointer;margin-bottom:8px}
+        .add-file-btn:hover{background:#30363d}
+        @media(max-width:900px){.main-grid{grid-template-columns:1fr}.header{flex-direction:column;align-items:stretch;gap:14px}.header-left{justify-content:space-between}.header-right{justify-content:space-between;flex-wrap:wrap}.search-box input{width:130px}.repo-desc{white-space:normal;max-width:100%}.repo-item{flex-direction:column;align-items:flex-start;gap:10px}.repo-meta{justify-content:flex-start;width:100%}}
+        @media(max-width:500px){.header-nav{gap:12px;font-size:13px;flex-wrap:wrap}.search-box input{width:100px}.repo-header{flex-direction:column;align-items:flex-start;gap:12px}.new-repo-btn{width:100%;justify-content:center}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <header class="header">
+        <div class="header-left">
+            <a href="#" class="logo"><i class="fab fa-github"></i><span>RuHub</span></a>
+            <nav class="header-nav">
+                <a href="#">Обзор</a>
+                <a href="#">Репозитории</a>
+                <a href="#">Проекты</a>
+                <a href="#">Пакеты</a>
+            </nav>
+        </div>
+        <div class="header-right">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Поиск...">
+            </div>
+            <button class="login-btn" id="loginBtn"><i class="fas fa-sign-in-alt"></i> Войти</button>
+            <div class="avatar" id="avatarDisplay">RU</div>
+        </div>
+    </header>
+    <div class="main-grid">
+        <aside class="profile-card">
+            <div class="profile-avatar-large" id="profileAvatar">RU</div>
+            <div class="profile-name" id="profileName">Руслан Хабов</div>
+            <div class="profile-handle" id="profileHandle">@ruhub</div>
+            <div class="profile-bio"><i class="fas fa-quote-left" style="color:#8b949e;margin-right:6px"></i>Сделано в России · open source энтузиаст</div>
+            <div class="profile-stats">
+                <div class="stat-item"><i class="fas fa-users"></i><strong>12</strong> <span>подписчиков</span><span style="margin-left:12px"><strong>8</strong> подписок</span></div>
+                <div class="stat-item"><i class="fas fa-star"></i><strong>24</strong> <span>звезды</span></div>
+                <div class="stat-item"><i class="fas fa-code-branch"></i><strong>31</strong> <span>форк</span></div>
+            </div>
+            <a href="#" class="profile-link"><i class="fas fa-edit"></i> Редактировать профиль</a>
+        </aside>
+        <section>            <div class="repo-header">
+                <h2><i class="fas fa-book"></i> Репозитории<span class="repo-count" id="repoCount">8</span></h2>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <button class="new-repo-btn" id="createRepoBtn"><i class="fas fa-plus"></i> Создать</button>
+                </div>
+            </div>
+            <div class="repo-list" id="repoList">
+                <div class="repo-item">
+                    <div class="repo-info">
+                        <a href="#" class="repo-name"><i class="fas fa-folder-open"></i> github_source_code.html</a>
+                        <div class="repo-desc">Исходный код этой страницы — полный HTML/CSS/JS RuHub</div>
+                        <div class="repo-meta">
+                            <span><span class="lang-color" style="background:#e34c26"></span> HTML</span>
+                            <span class="stars"><i class="far fa-star"></i> 89</span>
+                            <span class="forks"><i class="fas fa-code-branch"></i> 34</span>
+                            <span>Обновлён сейчас</span>
+                        </div>
+                    </div>
+                    <div class="repo-actions">
+                        <button><i class="far fa-star"></i> Звезда</button>
+                        <button><i class="fas fa-code-branch"></i> Форк</button>
+                        <a href="#"><i class="fas fa-code"></i> Код</a>
+                    </div>
+                </div>
+                <div class="repo-item" data-repo="de_iz_du">
+                    <div class="repo-info">
+                        <a href="https://gorteys.github.io" target="_blank" class="repo-name"><i class="fas fa-folder-open"></i> де_из_ду.рухаб.ru</a>
+                        <div class="repo-desc">Репозиторий De Iz Du на RuHub — форк gorteys.github.io</div>
+                        <div class="repo-meta">
+                            <span><span class="lang-color" style="background:#b07219"></span> HTML</span>
+                            <span class="stars"><i class="far fa-star"></i> 42</span>
+                            <span class="forks"><i class="fas fa-code-branch"></i> 17</span>
+                            <span>Обновлён сегодня</span>
+                        </div>
+                    </div>
+                    <div class="repo-actions">
+                        <button><i class="far fa-star"></i> Звезда</button>
+                        <button><i class="fas fa-code-branch"></i> Форк</button>
+                        <a href="https://gorteys.github.io" target="_blank"><i class="fas fa-external-link-alt"></i> Перейти</a>
+                    </div>
+                </div>
+                <div class="repo-item">
+                    <div class="repo-info">
+                        <div class="repo-name"><i class="fas fa-folder-open"></i> ru-core</div>
+                        <div class="repo-desc">Ядро платформы RuHub — микросервисы, API и очереди</div>
+                        <div class="repo-meta">
+                            <span><span class="lang-color" style="background:#b07219"></span> Go</span>
+                            <span class="stars"><i class="far fa-star"></i> 14</span>
+                            <span class="forks"><i class="fas fa-code-branch"></i> 7</span>
+                            <span>Обновлён 3 дня назад</span>
+                        </div>
+                    </div>
+                    <div class="repo-actions">
+                        <button><i class="far fa-star"></i> Звезда</button>
+                        <button><i class="fas fa-code-branch"></i> Форк</button>
+                    </div>
+                </div>
+                <div class="repo-item">
+                    <div class="repo-info">
+                        <div class="repo-name"><i class="fas fa-folder-open"></i> ru-frontend</div>
+                        <div class="repo-desc">Клиентская часть на React + TypeScript, адаптивный дизайн</div>
+                        <div class="repo-meta">
+                            <span><span class="lang-color" style="background:#3178c6"></span> TypeScript</span>
+                            <span class="stars"><i class="far fa-star"></i> 9</span>
+                            <span class="forks"><i class="fas fa-code-branch"></i> 4</span>
+                            <span>Обновлён вчера</span>
+                        </div>
+                    </div>
+                    <div class="repo-actions">
+                        <button><i class="far fa-star"></i> Звезда</button>
+                        <button><i class="fas fa-code-branch"></i> Форк</button>
+                    </div>
+                </div>
+                <div class="repo-item">
+                    <div class="repo-info">
+                        <div class="repo-name"><i class="fas fa-folder-open"></i> ru-docs</div>
+                        <div class="repo-desc">Документация RuHub — руководства, API-справочник, гайды</div>
+                        <div class="repo-meta">
+                            <span><span class="lang-color" style="background:#f1e05a"></span> JavaScript</span>
+                            <span class="stars"><i class="far fa-star"></i> 6</span>
+                            <span class="forks"><i class="fas fa-code-branch"></i> 2</span>
+                            <span>Обновлён 5 дней назад</span>
+                        </div>
+                    </div>
+                    <div class="repo-actions">
+                        <button><i class="far fa-star"></i> Звезда</button>
+                        <button><i class="fas fa-code-branch"></i> Форк</button>
+                    </div>
+                </div>
+                <div class="repo-item">
+                    <div class="repo-info">
+                        <div class="repo-name"><i class="fas fa-folder-open"></i> ru-cli</div>
+                        <div class="repo-desc">CLI-инструмент для управления репозиториями RuHub</div>
+                        <div class="repo-meta">
+                            <span><span class="lang-color" style="background:#3572A5"></span> Python</span>
+                            <span class="stars"><i class="far fa-star"></i> 11</span>
+                            <span class="forks"><i class="fas fa-code-branch"></i> 3</span>
+                            <span>Обновлён 2 недели назад</span>
+                        </div>
+                    </div>
+                    <div class="repo-actions">
+                        <button><i class="far fa-star"></i> Звезда</button>
+                        <button><i class="fas fa-code-branch"></i> Форк</button>
+                    </div>
+                </div>
+                <div class="repo-item">
+                    <div class="repo-info">
+                        <div class="repo-name"><i class="fas fa-folder-open"></i> ru-mobile</div>
+                        <div class="repo-desc">Мобильное приложение RuHub (Flutter, iOS + Android)</div>
+                        <div class="repo-meta">
+                            <span><span class="lang-color" style="background:#00B4AB"></span> Dart</span>
+                            <span class="stars"><i class="far fa-star"></i> 18</span>
+                            <span class="forks"><i class="fas fa-code-branch"></i> 9</span>
+                            <span>Обновлён 1 месяц назад</span>
+                        </div>
+                    </div>
+                    <div class="repo-actions">
+                        <button><i class="far fa-star"></i> Звезда</button>
+                        <button><i class="fas fa-code-branch"></i> Форк</button>
+                    </div>
+                </div>
+                <div class="repo-item">
+                    <div class="repo-info">
+                        <div class="repo-name"><i class="fas fa-folder-open"></i> ru-actions</div>
+                        <div class="repo-desc">GitHub Actions для CI/CD в экосистеме RuHub</div>
+                        <div class="repo-meta">
+                            <span><span class="lang-color" style="background:#563d7c"></span> HCL</span>
+                            <span class="stars"><i class="far fa-star"></i> 7</span>
+                            <span class="forks"><i class="fas fa-code-branch"></i> 2</span>
+                            <span>Обновлён 3 недели назад</span>
+                        </div>
+                    </div>
+                    <div class="repo-actions">
+                        <button><i class="far fa-star"></i> Звезда</button>
+                        <button><i class="fas fa-code-branch"></i> Форк</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</div><!-- Модалка входа -->
+<div class="login-modal" id="loginModal">
+    <div class="login-box">
+        <button class="login-close" id="loginClose">&times;</button>
+        <h3><i class="fas fa-sign-in-alt"></i> Вход в RuHub</h3>
+        <p style="color:#8b949e;font-size:14px;margin-bottom:12px">Введите никнейм</p>
+        <input type="text" id="nickInput" placeholder="Никнейм" value="De Iz Du">
+        <button class="login-submit" id="loginSubmit"><i class="fas fa-arrow-right"></i> Продолжить</button>
+    </div>
+</div>
+
+<!-- Модалка создания репозитория -->
+<div class="create-repo-modal" id="createRepoModal">
+    <div class="create-repo-box">
+        <button class="create-close" id="createClose">&times;</button>
+        <h3><i class="fas fa-plus-circle"></i> Создать репозиторий</h3>
+        <label>Название репозитория</label>
+        <input type="text" id="repoNameInput" placeholder="например: мой-проект">
+        <label>Описание</label>
+        <textarea id="repoDescInput" placeholder="Краткое описание..."></textarea>
+        <label>Файлы (нажмите + чтобы добавить)</label>
+        <div class="file-list" id="fileList">
+            <div class="file-item"><span><i class="fas fa-file-code"></i> index.html</span><span style="color:#58a6ff">2.3 KB</span></div>
+            <div class="file-item"><span><i class="fas fa-file-alt"></i> README.md</span><span style="color:#58a6ff">1.1 KB</span></div>
+        </div>
+        <button class="add-file-btn" id="addFileBtn"><i class="fas fa-plus"></i> Добавить файл</button>
+        <button class="create-submit" id="createSubmit"><i class="fas fa-check"></i> Создать репозиторий</button>
+    </div>
+</div>
+
+<script>
+const loginBtn=document.getElementById('loginBtn'),
+loginModal=document.getElementById('loginModal'),
+loginClose=document.getElementById('loginClose'),
+loginSubmit=document.getElementById('loginSubmit'),
+nickInput=document.getElementById('nickInput'),
+avatarDisplay=document.getElementById('avatarDisplay'),
+profileAvatar=document.getElementById('profileAvatar'),
+profileName=document.getElementById('profileName'),
+profileHandle=document.getElementById('profileHandle'),
+createRepoBtn=document.getElementById('createRepoBtn'),
+createRepoModal=document.getElementById('createRepoModal'),
+createClose=document.getElementById('createClose'),
+createSubmit=document.getElementById('createSubmit'),
+repoNameInput=document.getElementById('repoNameInput'),
+repoDescInput=document.getElementById('repoDescInput'),
+repoList=document.getElementById('repoList'),
+repoCount=document.getElementById('repoCount'),
+fileList=document.getElementById('fileList'),
+addFileBtn=document.getElementById('addFileBtn'),
+sampleFiles=[
+    {name:'index.html',size:'2.3 KB'},
+    {name:'README.md',size:'1.1 KB'},
+    {name:'style.css',size:'4.7 KB'},
+    {name:'app.js',size:'8.2 KB'},
+    {name:'config.json',size:'0.9 KB'}
+];
+
+loginBtn.onclick=()=>loginModal.classList.add('active');
+loginClose.onclick=()=>loginModal.classList.remove('active');
+loginModal.onclick=e=>{if(e.target===loginModal)loginModal.classList.remove('active')};
+
+loginSubmit.onclick=()=>{
+    const n=nickInput.value.trim()||'De Iz Du';
+    if(n.toLowerCase()==='de iz du'){
+        const u='https://avatars.githubusercontent.com/u/234830088?v=4&size=64';
+        avatarDisplay.innerHTML='<img src="'+u+'" alt="avatar">';
+        profileAvatar.innerHTML='<img src="'+u+'" alt="avatar">';
+        profileName.textContent='De Iz Du';
+        profileHandle.textContent='@de_iz_du';
+        document.querySelector('.profile-bio').innerHTML='<i class="fas fa-quote-left" style="color:#8b949e;margin-right:6px"></i>Добро пожаловать, De Iz Du! · легенда RuHub';
+        loginModal.classList.remove('active');
+    } else {
+        alert('Пожалуйста, введите "De Iz Du" для входа');
+    }
+};
+
+nickInput.onkeydown=e=>{if(e.key==='Enter')loginSubmit.click()};
+
+createRepoBtn.onclick=()=>createRepoModal.classList.add('active');
+createClose.onclick=()=>createRepoModal.classList.remove('active');
+createRepoModal.onclick=e=>{if(e.target===createRepoModal)createRepoModal.classList.remove('active')};
+
+addFileBtn.onclick=()=>{
+    const files=sampleFiles.slice(0,3+Math.floor(Math.random()*3));
+    fileList.innerHTML=files.map(f=>'<div class="file-item"><span><i class="fas fa-file-code"></i> '+f.name+'</span><span style="color:#58a6ff">'+f.size+'</span></div>').join('');
+};
+
+createSubmit.onclick=()=>{
+    const name=repoNameInput.value.trim()||'новый-репо',
+    desc=repoDescInput.value.trim()||'Описание репозитория',
+    langColors=['#b07219','#3178c6','#f1e05a','#3572A5','#00B4AB','#563d7c','#e34c26'],
+    langNames=['HTML','CSS','JavaScript','Python','Go','TypeScript','Ruby','Rust'],
+    c=langColors[Math.floor(Math.random()*langColors.length)],
+    ln=langNames[Math.floor(Math.random()*langNames.length)],
+    stars=Math.floor(Math.random()*50)+5,
+    forks=Math.floor(Math.random()*20)+2;
+    const d=document.createElement('div');
+    d.className='repo-item';
+    d.innerHTML='<div class="repo-info"><div class="repo-name"><i class="fas fa-folder-open"></i> '+name+'</div><div class="repo-desc">'+desc+'</div><div class="repo-meta"><span><span class="lang-color" style="background:'+c+'"></span> '+ln+'</span><span class="stars"><i class="far fa-star"></i> '+stars+'</span><span class="forks"><i class="fas fa-code-branch"></i> '+forks+'</span><span>Обновлён сейчас</span></div></div><div class="repo-actions"><button><i class="far fa-star"></i> Звезда</button><button><i class="fas fa-code-branch"></i> Форк</button></div>';
+    repoList.prepend(d);
+    repoCount.textContent=parseInt(repoCount.textContent)+1;
+    createRepoModal.classList.remove('active');
+    repoNameInput.value='';
+    repoDescInput.value='';
+    fileList.innerHTML='<div class="file-item"><span><i class="fas fa-file-code"></i> index.html</span><span style="color:#58a6ff">2.3 KB</span></div><div class="file-item"><span><i class="fas fa-file-alt"></i> README.md</span><span style="color:#58a6ff">1.1 KB</span></div>';
+};
+</script>
+</body>
+</html>
