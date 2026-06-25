@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GenDino Editor</title>
+    <style>
+        /* Жесткая блокировка прокрутки */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: fixed;
+            background: #f7f7f7;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Courier New', Courier, monospace;
+            touch-action: none;
+        }
+        
+        #gameWrapper {
+            position: relative;
+            background: white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 800px; 
+            height: 300px;
+        }
+        
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: #ffffff;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.92);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+        .overlay.active { display: flex; }
+        
+        .overlay h2 {
+            margin: 0 0 10px 0;
+            font-size: 22px;
+            color: #333;
+            letter-spacing: 1px;
+        }
+        .menu-btn {
+            background: #555;
+            color: white;
+            border: none;
+            font-family: inherit;
+            font-size: 15px;
+            padding: 8px 18px;
+            margin: 4px;
+            width: 180px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 2px 2px 0px #333;
+        }
+        .menu-btn:active { transform: translate(2px, 2px); box-shadow: none; }
+        .menu-btn:hover { background: #777; }
+        
+        .menu-btn.secondary {
+            background: #ddd;
+            color: #333;
+            box-shadow: 2px 2px 0px #aaa;
+        }
+        .menu-btn.secondary:hover { background: #ccc; }
+        
+        .section-title {
+            font-size: 13px;
+            font-weight: bold;
+            color: #444;
+            margin-top: 12px;
+            margin-bottom: 5px;
+        }
+
+        #uiOverlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+        #pauseBtn {
+            position: absolute;
+            top: 10px; right: 15px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-family: inherit;
+            font-size: 12px;
+            cursor: pointer;
+            pointer-events: auto;
+        }
+        #scoreDisplay {
+            position: absolute;
+            top: 10px; left: 15px;
+            font-size: 14px;
+            color: #333;
+            font-weight: bold;
+            pointer-events: none;
+        }
+
+        @media (max-width: 820px) {
+            #gameWrapper { width: 95vw; height: calc(95vw * 0.375); }
+            .menu-btn { width: 150px; font-size: 13px; padding: 6px 12px; }
+            .overlay h2 { font-size: 18px; }
+            #pauseBtn { font-size: 11px; padding: 3px 10px; top: 6px; right: 8px; }
+            #scoreDisplay { font-size: 12px; top: 6px; left: 8px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="gameWrapper">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="uiOverlay">
+            <button id="pauseBtn" onclick="togglePause()">⏸ Пауза</button>
+            <div id="scoreDisplay">Счет: 0</div>
+        </div>
+        
+        <div id="mainMenu" class="overlay active">
+            <h2>ВЫБЕРИ РЕЖИМ</h2>
+            <button class="menu-btn" onclick="startGame('gen')">▶ GenDino (Редактор)</button>
+            <button class="menu-btn" onclick="startGame('chrome')">▶ Chrome Dino</button>
+        </div>
+        
+        <div id="pauseMenu" class="overlay">
+            <h2>⏸ ПАУЗА</h2>
+            <div class="section-title">Препятствия:</div>
+            <button id="obstacleToggleBtn" class="menu-btn secondary" onclick="toggleObstacles()">Вкл</button>
+            <div class="section-title">Скин:</div>
+            <button id="skinToggleBtn" class="menu-btn secondary" onclick="toggleSkin()">Classic</button>
+            <div class="section-title" style="margin-top: 15px;">Действия:</div>
+            <button class="menu-btn" onclick="resumeGame()">▶ Продолжить</button>
+            <button class="menu-btn secondary" onclick="quitToMenu()">В меню</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // ==========================================
+        //  КРИТИЧЕСКАЯ СТРОКА, КОТОРУЮ Я УДАЛИЛ РАНЕЕ
+        //  Устанавливаем реальное разрешение холста.
+        // ==========================================
+        canvas.width = 800;
+        canvas.height = 300;
+        
+        const mainMenu = document.getElementById('mainMenu');
+        const pauseMenu = document.getElementById('pauseMenu');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const obstacleToggleBtn = document.getElementById('obstacleToggleBtn');
+        const skinToggleBtn = document.getElementById('skinToggleBtn');
+
+        // Размеры логической игры (в пикселях)
+        const LOGIC_WIDTH = 800;
+
+        // ПОДНЯЛИ ВСЁ НА 20 ПИКСЕЛЕЙ ВВЕРХ ОТНОСИТЕЛЬНО НИЗА
+        const GROUND_Y = 240; 
+        const DINO_GROUND_Y = 210; 
+
+        let dino = {};
+        let obstacles = [];
+        let speed = 0;
+        let frame = 0;
+        let score = 0;
+        let gameOver = false;
+        let gameRunning = false;
+        let isPaused = false;
+        
+        let gameMode = 'gen'; 
+        let obstaclesEnabled = true;
+        let genSkinIndex = 0; 
+
+        function resetDino() {
+            dino = {
+                x: 50,
+                y: DINO_GROUND_Y,      
+                width: 40,
+                height: 30, 
+                vy: 0,
+                gravity: 0.6,
+                jumpPower: -12,
+                grounded: true
+            };
+        }
+
+        function startGame(mode) {
+            gameMode = mode;
+            mainMenu.classList.remove('active');
+            
+            obstacles = [];
+            speed = 5;
+            frame = 0;
+            score = 0;
+            gameOver = false;
+            gameRunning = true;
+            isPaused = false;
+            obstaclesEnabled = true;
+            genSkinIndex = 0;
+            
+            obstacleToggleBtn.textContent = 'Вкл';
+            skinToggleBtn.textContent = 'Classic';
+            
+            if (mode === 'chrome') {
+                skinToggleBtn.parentElement.style.display = 'none';
+            } else {
+                skinToggleBtn.parentElement.style.display = 'block';
+            }
+
+            resetDino();
+            updateScoreUI();
+        }
+
+        function drawDino() {
+            if (gameMode === 'chrome') {
+                ctx.fillStyle = '#555';
+                ctx.fillRect(dino.x, dino.y, 44, 30); 
+                ctx.fillRect(dino.x + 30, dino.y - 10, 20, 20);
+                ctx.fillStyle = 'white';
+                ctx.fillRect(dino.x + 44, dino.y - 8, 6, 8);
+                ctx.fillStyle = 'black';
+                ctx.fillRect(dino.x + 46, dino.y - 6, 4, 4);
+                ctx.fillStyle = '#555';
+                
+                if (dino.grounded && frame % 10 < 5) {
+                    ctx.fillRect(dino.x + 5, dino.y + 30, 8, 10);
+                    ctx.fillRect(dino.x + 25, dino.y + 30, 8, 10);
+                } else {
+                    ctx.fillRect(dino.x + 2, dino.y + 30, 8, 10);
+                    ctx.fillRect(dino.x + 28, dino.y + 30, 8, 10);
+                }
+            } else if (gameMode === 'gen') {
+                if (genSkinIndex === 0) {
+                    // Classic
+                    ctx.fillStyle = '#555';
+                    ctx.fillRect(dino.x, dino.y, dino.width, dino.height);
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(dino.x + 25, dino.y + 5, 8, 8);
+                    ctx.fillStyle = 'black';
+                    ctx.fillRect(dino.x + 28, dino.y + 8, 4, 4);
+                    ctx.fillStyle = '#555';
+                } else if (genSkinIndex === 1) {
+                    // Pixel
+                    ctx.fillStyle = '#2e7d32';
+                    ctx.fillRect(dino.x, dino.y, dino.width, dino.height);
+                    ctx.fillStyle = '#fff';
+                    ctx.fillRect(dino.x + 28, dino.y + 5, 8, 8);
+                    ctx.fillStyle = '#000';
+                    ctx.fillRect(dino.x + 30, dino.y + 7, 4, 4);
+                    ctx.fillStyle = '#2e7d32';
+                }
+                
+                if (dino.grounded && frame % 10 < 5) {
+                    ctx.fillRect(dino.x + 5, dino.y + 30, 5, 10);
+                    ctx.fillRect(dino.x + 25, dino.y + 30, 5, 10);
+                } else {
+                    ctx.fillRect(dino.x, dino.y + 30, 5, 10);
+                    ctx.fillRect(dino.x + 30, dino.y + 30, 5, 10);
+                }
+            }
+        }
+
+        function spawnObstacle() {
+            if (!obstaclesEnabled) return;
+            if (frame % 100 === 0 && !gameOver && gameRunning && !isPaused) {
+                let height = 30 + Math.random() * 20;
+                obstacles.push({
+                    x: 850,
+                    y: GROUND_Y - height, 
+                    width: 15,
+                    height: height
+                });
+            }
+        }
+
+        function update() {
+            if (gameOver || !gameRunning || isPaused) return;
+
+            dino.vy += dino.gravity;
+            dino.y += dino.vy;
+
+            // Приземление на отметку DINO_GROUND_Y
+            if (dino.y > DINO_GROUND_Y) {
+                dino.y = DINO_GROUND_Y;
+                dino.vy = 0;
+                dino.grounded = true;
+            } else {
+                dino.grounded = false;
+            }
+
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let obs = obstacles[i];
+                obs.x -= speed;
+
+                if (obs.x + obs.width < 0) {
+                    obstacles.splice(i, 1);
+                    score += 10;
+                    updateScoreUI();
+                }
+
+                // Коллизия
+                if (obs.x < dino.x + dino.width &&
+                    obs.x + obs.width > dino.x &&
+                    obs.y < dino.y + dino.height &&
+                    obs.y + obs.height > dino.y) {
+                    gameOver = true;
+                    gameRunning = false;
+                }
+            }
+
+            frame++;
+            spawnObstacle();
+            if (frame % 500 === 0) speed += 0.5;
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, LOGIC_WIDTH, 300);
+
+            // Линия Земли
+            ctx.beginPath();
+            ctx.moveTo(0, GROUND_Y);
+            ctx.lineTo(LOGIC_WIDTH, GROUND_Y);
+            ctx.strokeStyle = '#777';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            drawDino();
+            
+            ctx.fillStyle = '#777';
+            for (let obs of obstacles) {
+                ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+            }
+
+            if (gameOver) {
+                ctx.fillStyle = '#000';
+                ctx.font = '24px monospace';
+                ctx.fillText('GAME OVER', 310, 140);
+                ctx.font = '14px monospace';
+                ctx.fillText('Тапни для рестарта', 330, 180);
+            }
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updateScoreUI() { scoreDisplay.textContent = 'Счет: ' + score; }
+
+        function togglePause() {
+            if (gameOver || !gameRunning) return;
+            isPaused = !isPaused;
+            if (isPaused) {
+                pauseMenu.classList.add('active');
+                obstacleToggleBtn.textContent = obstaclesEnabled ? 'Вкл' : 'Выкл';
+                if (gameMode === 'gen') skinToggleBtn.textContent = genSkinIndex === 0 ? 'Classic' : 'Pixel';
+            } else {
+                pauseMenu.classList.remove('active');
+            }
+        }
+
+        function resumeGame() { isPaused = false; pauseMenu.classList.remove('active'); }
+
+        function quitToMenu() {
+            isPaused = false;
+            gameRunning = false;
+            pauseMenu.classList.remove('active');
+            mainMenu.classList.add('active');
+            scoreDisplay.textContent = 'Счет: 0';
+        }
+
+        function toggleObstacles() {
+            if (gameMode !== 'gen') return;
+            obstaclesEnabled = !obstaclesEnabled;
+            obstacleToggleBtn.textContent = obstaclesEnabled ? 'Вкл' : 'Выкл';
+            if (!obstaclesEnabled) obstacles = [];
+        }
+
+        function toggleSkin() {
+            if (gameMode !== 'gen') return;
+            genSkinIndex = (genSkinIndex + 1) % 2;
+            skinToggleBtn.textContent = genSkinIndex === 0 ? 'Classic' : 'Pixel';
+        }
+
+        function handleJump() {
+            if (gameOver) { startGame(gameMode); return; }
+            if (isPaused) return;
+            if (!gameRunning) {
+                if (!mainMenu.classList.contains('active')) gameRunning = true;
+                return;
+            }
+            if (dino.grounded) {
+                dino.vy = dino.jumpPower;
+                dino.grounded = false;
+            }
+        }
+
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleJump(); });
+        canvas.addEventListener('mousedown', (e) => { handleJump(); });
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                if (pauseMenu.classList.contains('active')) resumeGame();
+                else handleJump();
+            }
+            if (e.key === 'Escape' || e.key === 'p') {
+                if (!mainMenu.classList.contains('active')) togglePause();
+            }
+        });
+
+        gameLoop();
+    </script>
+</body>
+</html>
