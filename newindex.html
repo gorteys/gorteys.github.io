@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Bear 2D</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #87CEEB;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 60 60"><text x="10" y="40" font-size="40">🐻</text></svg>');
+            background-size: 80px 80px;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #333;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 900px;
+            width: 95%;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+        .lang-switch {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #f0f0f0;
+            padding: 5px 10px;
+            border-radius: 20px;
+        }
+        .lang-switch button {
+            border: none;
+            background: transparent;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-weight: bold;
+            color: #555;
+            transition: 0.3s;
+        }
+        .lang-switch button.active {
+            background: #4CAF50;
+            color: white;
+        }
+        .lang-switch button:hover { background: #ddd; }
+        
+        h1 { color: #8B4513; font-size: 3em; margin-bottom: 5px; }
+        .subtitle { font-size: 1.2em; color: #666; margin-bottom: 20px; }
+
+        .game-wrapper {
+            position: relative; 
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto 20px auto;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            background: #000;
+        }
+        .game-wrapper iframe {
+            width: 100%;
+            height: 450px;
+            border: none;
+            display: block;
+        }
+
+        #launcher-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(139, 69, 19, 0.85);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 10;
+            border-radius: 15px;
+        }
+        
+        #pause-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 20;
+            border-radius: 15px;
+        }
+
+        .launcher-title { font-size: 2.5em; font-weight: bold; margin-bottom: 15px; }
+        .launcher-btn {
+            background: #32CD32; color: white; border: none; padding: 12px 30px; margin: 6px;
+            font-size: 1.2em; font-weight: bold; border-radius: 30px; cursor: pointer;
+            width: 220px;
+        }
+        .launcher-btn.credits-btn { background: #9b59b6; }
+        .launcher-btn.close-btn { background: #e74c3c; width: 120px; margin-top: 15px; }
+
+        .launcher-call-btn {
+            background: #8B4513; color: white; border: none; padding: 8px 20px;
+            border-radius: 20px; font-size: 1em; cursor: pointer; margin-top: 10px;
+            font-weight: bold; box-shadow: 0 3px 0 #5c2e0b;
+        }
+        .launcher-call-btn:active { transform: translateY(3px); box-shadow: none; }
+
+        .video-wrapper {
+            width: 100%;
+            max-width: 800px;
+            margin: 20px auto 0 auto;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            background: #000;
+        }
+        .video-wrapper iframe {
+            width: 100%;
+            height: 250px;
+            border: none;
+            display: block;
+        }
+
+        .video-btn {
+            background: #e67e22; color: white; border: none; padding: 8px 20px;
+            border-radius: 20px; font-size: 1em; cursor: pointer; margin-top: 5px;
+            font-weight: bold; box-shadow: 0 3px 0 #b85e0e; transition: 0.1s;
+        }
+        .video-btn:active { transform: translateY(3px); box-shadow: none; }
+        
+        .video-btn.main {
+            background: #2ecc71; box-shadow: 0 3px 0 #27ae60;
+        }
+
+        @media (max-width: 600px) {
+            .game-wrapper iframe { height: 300px; }
+            .video-wrapper iframe { height: 180px; }
+            .launcher-title { font-size: 1.8em; }
+            .launcher-btn { width: 160px; font-size: 1em; padding: 10px; }
+            h1 { font-size: 2em; }
+            .lang-switch { position: relative; top: 0; right: 0; margin-bottom: 20px; display: inline-block; }
+        }
+        .en, .ru { display: none; }
+        .active-lang { display: block; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="lang-switch">
+        <button onclick="switchLang('en')" id="btn-en" class="active">En-US</button>
+        <button onclick="switchLang('ru')" id="btn-ru">Ru-Ru</button>
+    </div>
+
+    <!-- ОБЩИЕ МЕНЮ ДЛЯ ВСЕХ ЯЗЫКОВ -->
+    <div id="launcher-overlay">
+        <div class="launcher-title" id="launcher-title-text">⚙️ LAUNCHER</div>
+        <button class="launcher-btn" onclick="closeLauncher()" id="launcher-btn-start">▶ Launch Game</button>
+        <button class="launcher-btn credits-btn" onclick="showCredits()">⭐ Credits</button>
+        <button class="launcher-btn close-btn" onclick="closeLauncher()">✖ Close</button>
+    </div>
+    
+    <div id="pause-overlay">
+        <div class="launcher-title" id="pause-title-text">⏸️ PAUSE MENU</div>
+        <button class="launcher-btn" onclick="closePause()" id="pause-btn-resume">▶ Resume Game</button>
+        <button class="launcher-btn credits-btn" onclick="showCredits()">⭐ Credits</button>
+        <button class="launcher-btn close-btn" onclick="closePause()">✖ Close</button>
+    </div>
+
+    <!-- English Version -->
+    <div id="lang-en" class="en active-lang">
+        <h1>Super Bear 2D</h1>
+        <p class="subtitle">An adventure of a brave bear!</p>
+        <div class="game-wrapper">
+            <iframe src="https://scratch.mit.edu/projects/1350650663/embed" allowtransparency="true" width="485" height="402" frameborder="0" scrolling="no" allowfullscreen></iframe>
+        </div>
+        
+        <button class="launcher-call-btn" onclick="openLauncher()">⚙️ Open Launcher</button>
+        <p style="color: #777; font-size: 0.9em;">Controls: Arrow Keys to move, ↑ to jump.<br>Press <b>0</b> to open Pause Menu.</p>
+
+        <div class="video-wrapper">
+            <iframe id="rutube-player" src="https://rutube.ru/embed/41fc67d70885860663cb74aabd2f9b53/" allowfullscreen></iframe>
+        </div>
+        
+        <button class="video-btn" onclick="randomVideo()">🎲 Random Video</button>
+        <button class="video-btn main" onclick="mainVideo()">⭐ Main Video</button>
+    </div>
+
+    <!-- Russian Version -->
+    <div id="lang-ru" class="ru">
+        <h1>Super Bear 2D</h1>
+        <p class="subtitle">Приключения храброго медведя!</p>
+        <div class="game-wrapper">
+            <iframe src="https://scratch.mit.edu/projects/1350650663/embed" allowtransparency="true" width="485" height="402" frameborder="0" scrolling="no" allowfullscreen></iframe>
+        </div>
+        
+        <button class="launcher-call-btn" onclick="openLauncher()">⚙️ Открыть лаунчер</button>
+        <p style="color: #777; font-size: 0.9em;">Управление: Стрелки для ходьбы, ↑ для прыжка.<br>Нажмите <b>0</b> чтобы открыть меню паузы.</p>
+
+        <div class="video-wrapper">
+            <iframe id="rutube-player" src="https://rutube.ru/embed/41fc67d70885860663cb74aabd2f9b53/" allowfullscreen></iframe>
+        </div>
+        
+        <button class="video-btn" onclick="randomVideo()">🎲 Случайное видео</button>
+        <button class="video-btn main" onclick="mainVideo()">⭐ Главное видео</button>
+    </div>
+</div>
+
+<script>
+    function switchLang(lang) {
+        document.getElementById('lang-en').classList.remove('active-lang');
+        document.getElementById('lang-ru').classList.remove('active-lang');
+        document.getElementById('btn-en').classList.remove('active');
+        document.getElementById('btn-ru').classList.remove('active');
+        document.getElementById('lang-' + lang).classList.add('active-lang');
+        document.getElementById('btn-' + lang).classList.add('active');
+
+        if (lang === 'en') {
+            document.getElementById('launcher-title-text').innerText = '⚙️ LAUNCHER';
+            document.getElementById('launcher-btn-start').innerText = '▶ Launch Game';
+            document.getElementById('pause-title-text').innerText = '⏸️ PAUSE MENU';
+            document.getElementById('pause-btn-resume').innerText = '▶ Resume Game';
+        } else {
+            document.getElementById('launcher-title-text').innerText = '⚙️ ЛАУНЧЕР';
+            document.getElementById('launcher-btn-start').innerText = '▶ Запустить игру';
+            document.getElementById('pause-title-text').innerText = '⏸️ МЕНЮ ПАУЗЫ';
+            document.getElementById('pause-btn-resume').innerText = '▶ Продолжить';
+        }
+
+        closeLauncher();
+        closePause();
+    }
+
+    function openLauncher() {
+        document.getElementById('launcher-overlay').style.display = 'flex';
+        closePause();
+    }
+    function closeLauncher() {
+        document.getElementById('launcher-overlay').style.display = 'none';
+    }
+
+    function openPause() {
+        if (document.getElementById('launcher-overlay').style.display === 'flex') {
+            return;
+        }
+        document.getElementById('pause-overlay').style.display = 'flex';
+    }
+    function closePause() {
+        document.getElementById('pause-overlay').style.display = 'none';
+    }
+
+    document.addEventListener('keydown', function(event) {
+        if (event.key === '0') {
+            event.preventDefault();
+            var pauseMenu = document.getElementById('pause-overlay');
+            if (pauseMenu.style.display === 'flex') {
+                closePause();
+            } else {
+                openPause();
+            }
+        }
+    });
+
+    function showCredits() {
+        alert("⭐ CREDITS ⭐\n\nCreator: CatBaaSCRATCH\nBackground & Level: ChatGPT");
+    }
+
+    // --- ВАШЕ ОСНОВНОЕ ВИДЕО ---
+    var mainVideoLink = 'https://rutube.ru/embed/41fc67d70885860663cb74aabd2f9b53/';
+
+    // --- ФУНКЦИЯ ВОЗВРАТА К ГЛАВНОМУ ВИДЕО ---
+    function mainVideo() {
+        document.getElementById('rutube-player').src = mainVideoLink;
+    }
+
+    // --- ФУНКЦИЯ РАНДОМНОГО ВИДЕО ---
+    function randomVideo() {
+        var videoLinks = [
+            mainVideoLink, // Ваше видео
+            'https://rutube.ru/embed/d6a8b1c9e5f4a3b2c1d0e9f8a7b6c5d4/', // Пример 1
+            'https://rutube.ru/embed/e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6/', // Пример 2
+            'https://rutube.ru/embed/9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d/', // Пример 3
+            'https://rutube.ru/embed/f0e1d2c3b4a5a6b7c8d9e0f1a2b3c4d5/'  // Пример 4
+        ];
+
+        var randomIndex = Math.floor(Math.random() * videoLinks.length);
+        var randomLink = videoLinks[randomIndex];
+
+        document.getElementById('rutube-player').src = randomLink;
+    }
+</script>
+</body>
+</html>
