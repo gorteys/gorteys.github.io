@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Голосовой ИИ-Бот</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(145deg, #0b1120 0%, #1a2335 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+    }
+
+    .card {
+      max-width: 600px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 48px;
+      padding: 32px 24px 40px;
+      box-shadow: 0 25px 50px -8px rgba(0, 0, 0, 0.6), inset 0 2px 2px rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.2s ease;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 600;
+      color: #f0f4ff;
+      text-align: center;
+      letter-spacing: -0.3px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    h1 span {
+      background: linear-gradient(135deg, #a0c0ff, #5f8aff);
+      padding: 4px 16px;
+      border-radius: 40px;
+      font-size: 16px;
+      font-weight: 500;
+      color: #0b1120;
+      letter-spacing: 0.3px;
+    }
+
+    .sub {
+      text-align: center;
+      color: #8e9fc7;
+      font-size: 14px;
+      margin-bottom: 28px;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+      padding-bottom: 16px;
+    }
+
+    .chat-window {
+      background: rgba(0, 0, 0, 0.35);
+      border-radius: 28px;
+      padding: 20px 18px;
+      margin-bottom: 24px;
+      min-height: 180px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      box-shadow: inset 0 8px 12px rgba(0, 0, 0, 0.4);
+      transition: all 0.2s;
+    }
+
+    .message-area {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .message {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      animation: fadeSlide 0.25s ease;
+    }
+
+    .message-bot {
+      justify-content: flex-start;
+    }
+
+    .message-user {
+      justify-content: flex-end;
+    }
+
+    .bubble {
+      max-width: 85%;
+      padding: 12px 18px;
+      border-radius: 24px;
+      font-size: 16px;
+      line-height: 1.5;
+      word-break: break-word;
+      background: #29344b;
+      color: #e8edff;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .bubble-bot {
+      background: #1f2a40;
+      border-bottom-left-radius: 6px;
+      color: #d6e2ff;
+    }
+
+    .bubble-user {
+      background: #3b4e7a;
+      border-bottom-right-radius: 6px;
+      color: white;
+      box-shadow: 0 4px 12px rgba(60, 100, 255, 0.2);
+    }
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      background: #253049;
+      flex-shrink: 0;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .avatar-bot {
+      background: #1f2a40;
+    }
+
+    .avatar-user {
+      background: #2a3f66;
+      order: 1;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 24px 8px;
+      color: #6a7ca0;
+      font-size: 15px;
+      letter-spacing: 0.3px;
+    }
+
+    .empty-state .icon {
+      font-size: 42px;
+      margin-bottom: 8px;
+      opacity: 0.5;
+    }
+
+    .empty-state p {
+      background: rgba(255, 255, 255, 0.02);
+      padding: 8px 16px;
+      border-radius: 40px;
+      display: inline-block;
+      backdrop-filter: blur(4px);
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      margin-top: 6px;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 14px 28px;
+      border: none;
+      border-radius: 60px;
+      font-size: 17px;
+      font-weight: 600;
+      background: #29344b;
+      color: #cddaff;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      flex: 1 1 auto;
+      min-width: 130px;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      letter-spacing: 0.3px;
+    }
+
+    .btn-primary {
+      background: #3b5fcf;
+      color: white;
+      box-shadow: 0 8px 20px rgba(40, 90, 255, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .btn-primary:active {
+      transform: scale(0.96);
+      background: #2f4fb0;
+    }
+
+    .btn-primary.listening {
+      background: #cf3b4a;
+      box-shadow: 0 8px 20px rgba(255, 50, 50, 0.4);
+      animation: pulse 1.2s infinite;
+    }
+
+    .btn-secondary {
+      background: #2a344a;
+      color: #b0c4f0;
+    }
+
+    .btn-secondary:active {
+      transform: scale(0.96);
+      background: #1f283b;
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      transform: scale(0.96);
+      pointer-events: none;
+      filter: grayscale(0.3);
+    }
+
+    .btn-icon {
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .status-badge {
+      text-align: center;
+      font-size: 14px;
+      color: #7d90b8;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 8px 14px;
+      border-radius: 40px;
+      display: inline-block;
+      align-self: center;
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(255, 255, 255, 0.03);
+    }
+
+    .status-badge .highlight {
+      color: #b7cdff;
+      font-weight: 500;
+    }
+
+    .footer-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 14px;
+      font-size: 12px;
+      color: #53668b;
+      padding: 0 4px;
+    }
+
+    .footer-info button {
+      background: transparent;
+      border: none;
+      color: #6880b0;
+      text-decoration: underline dotted;
+      cursor: pointer;
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 20px;
+      transition: 0.2s;
+    }
+
+    .footer-info button:hover {
+      color: #a0baf0;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(255, 60, 60, 0.5); }
+      70% { box-shadow: 0 0 0 12px rgba(255, 60, 60, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(255, 60, 60, 0); }
+    }
+
+    @keyframes fadeSlide {
+      from { opacity: 0.2; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* адаптив */
+    @media (max-width: 480px) {
+      .card { padding: 24px 16px; }
+      .btn { padding: 12px 18px; font-size: 15px; min-width: 100px; }
+      .bubble { font-size: 15px; padding: 10px 14px; }
+    }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>
+    🎙️ Голосовой ИИ
+    <span>бот</span>
+  </h1>
+  <div class="sub">Нажми «🎤 Слушать» и говори — бот напишет, что ты сказал</div>
+
+  <div class="chat-window" id="chatWindow">
+    <div class="message-area" id="messageArea">
+      <div class="empty-state" id="emptyState">
+        <div class="icon">🤖</div>
+        <p>Скажи что-нибудь, и я напишу это здесь</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="btn-group">
+      <button class="btn btn-primary" id="listenBtn">
+        <span class="btn-icon">🎤</span> Слушать
+      </button>
+      <button class="btn btn-secondary" id="clearBtn">
+        <span class="btn-icon">🗑️</span> Очистить
+      </button>
+    </div>
+
+    <div style="display: flex; justify-content: center;">
+      <span class="status-badge" id="statusBadge">
+        <span id="statusIcon">⚪</span> 
+        <span id="statusText">Готов</span>
+      </span>
+    </div>
+
+    <div class="footer-info">
+      <span>🔊 Распознавание речи</span>
+      <button id="exampleBtn">📝 пример фразы</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    "use strict";
+
+    // DOM элементы
+    const messageArea = document.getElementById('messageArea');
+    const emptyState = document.getElementById('emptyState');
+    const listenBtn = document.getElementById('listenBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const statusIcon = document.getElementById('statusIcon');
+    const statusText = document.getElementById('statusText');
+    const exampleBtn = document.getElementById('exampleBtn');
+
+    // Состояние
+    let isListening = false;
+    let recognition = null;
+    let currentMessage = '';   // для хранения последней распознанной фразы (не используется для отображения, но можно)
+    let messageCount = 0;
+
+    // --- Инициализация распознавания ---
+    function initSpeech() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        setStatus('❌', 'Браузер не поддерживает голосовой ввод');
+        listenBtn.disabled = true;
+        return null;
+      }
+
+      const recog = new SpeechRecognition();
+      recog.lang = 'ru-RU';
+      recog.continuous = false;       // однократное распознавание за раз
+      recog.interimResults = false;   // финальный результат (можно true, но для простоты false)
+      recog.maxAlternatives = 1;
+
+      // События
+      recog.onstart = function() {
+        isListening = true;
+        listenBtn.classList.add('listening');
+        listenBtn.innerHTML = `<span class="btn-icon">⏹️</span> Остановить`;
+        setStatus('🔴', 'Слушаю...');
+      };
+
+      recog.onerror = function(event) {
+        console.warn('Speech error:', event.error);
+        if (event.error === 'not-allowed') {
+          setStatus('⛔', 'Доступ к микрофону запрещён');
+        } else if (event.error === 'no-speech') {
+          setStatus('😶', 'Не услышал речи, попробуйте снова');
+        } else {
+          setStatus('⚠️', `Ошибка: ${event.error}`);
+        }
+        stopListening();
+      };
+
+      recog.onend = function() {
+        stopListening();
+        // если не было результата — оставляем статус, но не сбрасываем сообщение
+        if (!recog.result) {
+          // если не было результата и статус "Слушаю..." — меняем на готов
+          if (statusText.innerText === 'Слушаю...') {
+            setStatus('⚪', 'Готов');
+          }
+        }
+      };
+
+      recog.onresult = function(event) {
+        const result = event.results[0];
+        if (!result) return;
+        const transcript = result[0].transcript.trim();
+        if (transcript === '') {
+          setStatus('😶', 'Пустая фраза');
+          return;
+        }
+
+        // Добавляем сообщение от пользователя (что сказал человек)
+        addMessage('user', transcript);
+        // Бот пишет то же самое (как "ИИ бот пишет что человек сказал")
+        addMessage('bot', `"${transcript}"`);
+        
+        // Обновляем статус
+        setStatus('✅', 'Распознано');
+        // Останавливаем прослушивание (автоматически)
+        stopListening();
+        // Небольшая задержка для смены статуса
+        setTimeout(() => {
+          if (!isListening) setStatus('⚪', 'Готов');
+        }, 1200);
+      };
+
+      return recog;
+    }
+
+    // --- Вспомогательные функции ---
+    function setStatus(icon, text) {
+      statusIcon.innerText = icon || '⚪';
+      statusText.innerText = text || 'Готов';
+    }
+
+    function stopListening() {
+      if (recognition) {
+        try {
+          recognition.stop();
+        } catch (_) {}
+      }
+      isListening = false;
+      listenBtn.classList.remove('listening');
+      listenBtn.innerHTML = `<span class="btn-icon">🎤</span> Слушать`;
+      // статус не сбрасываем, чтобы видеть последнее состояние
+    }
+
+    function addMessage(type, text) {
+      // Убираем пустое состояние, если оно есть
+      if (emptyState) {
+        emptyState.style.display = 'none';
+      }
+
+      const msgDiv = document.createElement('div');
+      msgDiv.className = `message message-${type === 'user' ? 'user' : 'bot'}`;
+
+      const avatar = document.createElement('div');
+      avatar.className = `avatar avatar-${type === 'user' ? 'user' : 'bot'}`;
+      avatar.innerText = type === 'user' ? '🧑' : '🤖';
+
+      const bubble = document.createElement('div');
+      bubble.className = `bubble bubble-${type === 'user' ? 'user' : 'bot'}`;
+      bubble.innerText = text;
+
+      if (type === 'user') {
+        msgDiv.appendChild(bubble);
+        msgDiv.appendChild(avatar);
+      } else {
+        msgDiv.appendChild(avatar);
+        msgDiv.appendChild(bubble);
+      }
+
+      messageArea.appendChild(msgDiv);
+      messageCount++;
+      // Скролл вниз
+      const chatWindow = document.getElementById('chatWindow');
+      if (chatWindow) {
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+      }
+    }
+
+    function clearMessages() {
+      // Удаляем все сообщения, кроме emptyState
+      const messages = messageArea.querySelectorAll('.message');
+      messages.forEach(el => el.remove());
+      // Показываем пустое состояние
+      if (emptyState) {
+        emptyState.style.display = 'block';
+      }
+      setStatus('⚪', 'Готов');
+      // сбросить текущий результат
+      currentMessage = '';
+      messageCount = 0;
+    }
+
+    // --- Добавить пример фразы (демо) ---
+    function addExample() {
+      const phrases = [
+        'Привет, как дела?',
+        'Сегодня отличная погода',
+        'ИИ бот распознаёт речь',
+        'Я люблю программирование',
+        'Сделай сайт с голосовым вводом'
+      ];
+      const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
+      // имитация: пользователь сказал, бот написал
+      addMessage('user', randomPhrase);
+      addMessage('bot', `"${randomPhrase}"`);
+      setStatus('💬', 'Пример добавлен');
+      setTimeout(() => {
+        if (!isListening) setStatus('⚪', 'Готов');
+      }, 1500);
+    }
+
+    // --- Обработчики кнопок ---
+    function toggleListening() {
+      if (isListening) {
+        stopListening();
+        setStatus('⚪', 'Готов');
+        return;
+      }
+
+      if (!recognition) {
+        setStatus('❌', 'Распознавание не инициализировано');
+        return;
+      }
+
+      try {
+        recognition.start();
+      } catch (e) {
+        console.warn('start error:', e);
+        setStatus('⚠️', 'Ошибка запуска');
+        // если уже запущено — остановим и попробуем снова
+        try { recognition.stop(); } catch (_) {}
+        setTimeout(() => {
+          try { recognition.start(); } catch (_) {}
+        }, 200);
+      }
+    }
+
+    // --- Инициализация ---
+    recognition = initSpeech();
+
+    // Обработчики событий
+    listenBtn.addEventListener('click', toggleListening);
+
+    clearBtn.addEventListener('click', function() {
+      if (isListening) {
+        stopListening();
+      }
+      clearMessages();
+    });
+
+    exampleBtn.addEventListener('click', function() {
+      if (isListening) {
+        stopListening();
+      }
+      addExample();
+    });
+
+    // Дополнительно: если клик вне поля — не мешаем
+    // Обработка клавиши Escape для остановки (удобно)
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && isListening) {
+        stopListening();
+        setStatus('⚪', 'Готов');
+      }
+    });
+
+    // Если браузер закрывает страницу, останавливаем
+    window.addEventListener('beforeunload', function() {
+      if (recognition && isListening) {
+        try { recognition.stop(); } catch (_) {}
+      }
+    });
+
+    // Загружаем приветственное сообщение от бота (демо)
+    setTimeout(() => {
+      if (messageArea.querySelectorAll('.message').length === 0) {
+        // добавим приветствие
+        addMessage('bot', 'Нажмите "Слушать" и скажите что-нибудь. Я напишу ваши слова!');
+      }
+    }, 300);
+
+  })();
+</script>
+</body>
+  </html>
