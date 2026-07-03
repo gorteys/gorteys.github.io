@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎵 Голосовые ноты – говори и услышь</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            min-height: 100vh;
+            background: linear-gradient(145deg, #0b1120 0%, #1a2335 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+        .card {
+            max-width: 680px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border-radius: 48px;
+            padding: 30px 24px 36px;
+            box-shadow: 0 25px 50px -8px rgba(0,0,0,0.6);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #f0f4ff;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        h1 span {
+            background: linear-gradient(135deg, #f7b731, #f5a623);
+            padding: 4px 18px;
+            border-radius: 40px;
+            font-size: 16px;
+            color: #0b1120;
+        }
+        .sub {
+            text-align: center;
+            color: #8e9fc7;
+            font-size: 14px;
+            margin: 10px 0 24px;
+            border-bottom: 1px dashed rgba(255,255,255,0.06);
+            padding-bottom: 14px;
+        }
+        .chat-window {
+            background: rgba(0,0,0,0.35);
+            border-radius: 28px;
+            padding: 18px 16px;
+            min-height: 180px;
+            max-height: 280px;
+            overflow-y: auto;
+            margin-bottom: 24px;
+            border: 1px solid rgba(255,255,255,0.04);
+            box-shadow: inset 0 8px 12px rgba(0,0,0,0.4);
+        }
+        .chat-window::-webkit-scrollbar { width: 4px; }
+        .chat-window::-webkit-scrollbar-thumb { background: #3a4e75; border-radius: 10px; }
+        .message-area {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .message {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            animation: fadeSlide 0.25s ease;
+        }
+        .message-user { justify-content: flex-end; }
+        .message-bot { justify-content: flex-start; }
+        .bubble {
+            max-width: 85%;
+            padding: 10px 16px;
+            border-radius: 24px;
+            font-size: 16px;
+            line-height: 1.5;
+            border: 1px solid rgba(255,255,255,0.04);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        .bubble-user {
+            background: #3b4e7a;
+            color: white;
+            border-bottom-right-radius: 6px;
+        }
+        .bubble-bot {
+            background: #1f2a40;
+            color: #d6e2ff;
+            border-bottom-left-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .bubble-bot .note-badge {
+            display: inline-block;
+            background: #2a3f66;
+            padding: 2px 12px;
+            border-radius: 30px;
+            font-size: 13px;
+            color: #b7cdff;
+            align-self: flex-start;
+            letter-spacing: 0.5px;
+        }
+        .bubble-bot .note-name {
+            font-weight: 600;
+            color: #f7d44a;
+            font-size: 18px;
+        }
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            background: #253049;
+            flex-shrink: 0;
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+        .avatar-user { background: #2a3f66; order: 1; }
+        .empty-state {
+            text-align: center;
+            padding: 24px 8px;
+            color: #6a7ca0;
+        }
+        .empty-state .icon { font-size: 44px; opacity: 0.5; margin-bottom: 6px; }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 60px;
+            font-size: 16px;
+            font-weight: 600;
+            background: #29344b;
+            color: #cddaff;
+            cursor: pointer;
+            transition: 0.2s;
+            flex: 1 1 auto;
+            min-width: 120px;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.04);
+        }
+        .btn-primary {
+            background: #3b5fcf;
+            color: white;
+            box-shadow: 0 8px 20px rgba(40, 90, 255, 0.3);
+        }
+        .btn-primary:active { transform: scale(0.96); background: #2f4fb0; }
+        .btn-primary.listening {
+            background: #cf3b4a;
+            animation: pulse 1.2s infinite;
+        }
+        .btn-success {
+            background: #2a7a5a;
+            color: white;
+        }
+        .btn-success:active { transform: scale(0.96); background: #1f5a40; }
+        .btn-secondary:active { transform: scale(0.96); background: #1f283b; }
+        .btn:disabled { opacity: 0.4; pointer-events: none; filter: grayscale(0.3); }
+        .status-badge {
+            text-align: center;
+            font-size: 14px;
+            color: #7d90b8;
+            background: rgba(0,0,0,0.25);
+            padding: 8px 16px;
+            border-radius: 40px;
+            display: inline-block;
+            align-self: center;
+            border: 1px solid rgba(255,255,255,0.03);
+        }
+        .status-badge .highlight { color: #f7d44a; font-weight: 500; }
+        .footer-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+            font-size: 12px;
+            color: #53668b;
+        }
+        .footer-info button {
+            background: transparent;
+            border: none;
+            color: #6880b0;
+            text-decoration: underline dotted;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 20px;
+            transition: 0.2s;
+        }
+        .footer-info button:hover { color: #a0baf0; background: rgba(255,255,255,0.02); }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255,60,60,0.5); }
+            70% { box-shadow: 0 0 0 14px rgba(255,60,60,0); }
+            100% { box-shadow: 0 0 0 0 rgba(255,60,60,0); }
+        }
+        @keyframes fadeSlide {
+            from { opacity: 0.2; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @media (max-width: 480px) {
+            .card { padding: 20px 14px; }
+            .btn { padding: 12px 14px; font-size: 14px; min-width: 90px; }
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h1>🎵 Голосовые ноты <span>говори → играй</span></h1>
+    <div class="sub">Скажите название ноты (до, ре, ми, фа, соль, ля, си) — и браузер сыграет её</div>
+
+    <div class="chat-window" id="chatWindow">
+        <div class="message-area" id="messageArea">
+            <div class="empty-state" id="emptyState">
+                <div class="icon">🎤</div>
+                <p>Скажите ноту: до, ре, ми, фа, соль, ля, си</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="btn-group">
+            <button class="btn btn-primary" id="listenBtn">🎤 Слушать</button>
+            <button class="btn btn-success" id="playLastBtn">🔊 Сыграть последнюю</button>
+            <button class="btn btn-secondary" id="clearBtn">🗑️ Очистить</button>
+        </div>
+
+        <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;">
+            <span class="status-badge" id="statusBadge">
+                <span id="statusIcon">⚪</span>
+                <span id="statusText">Готов</span>
+            </span>
+        </div>
+
+        <div class="footer-info">
+            <span>🎼 Частота: 440 Гц (ля)</span>
+            <button id="exampleBtn">🎵 пример (до-ре-ми)</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        "use strict";
+
+        // --- DOM ---
+        const messageArea = document.getElementById('messageArea');
+        const emptyState = document.getElementById('emptyState');
+        const listenBtn = document.getElementById('listenBtn');
+        const playLastBtn = document.getElementById('playLastBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const statusIcon = document.getElementById('statusIcon');
+        const statusText = document.getElementById('statusText');
+        const exampleBtn = document.getElementById('exampleBtn');
+
+        // --- State ---
+        let recognition = null;
+        let isListening = false;
+        let lastNote = null;          // { name, frequency }
+        let audioContext = null;
+
+        // --- Ноты (частота в Гц) ---
+        const NOTES = {
+            'до': 261.63,
+            'ре': 293.66,
+            'ми': 329.63,
+            'фа': 349.23,
+            'соль': 392.00,
+            'ля': 440.00,
+            'си': 493.88
+        };
+        // Синонимы (для удобства)
+        const NOTE_SYNONYMS = {
+            'до': 'до',
+            'ре': 'ре',
+            'ми': 'ми',
+            'фа': 'фа',
+            'соль': 'соль',
+            'ля': 'ля',
+            'си': 'си',
+            'do': 'до',
+            're': 'ре',
+            'mi': 'ми',
+            'fa': 'фа',
+            'sol': 'соль',
+            'la': 'ля',
+            'si': 'си'
+        };
+
+        // --- Audio ---
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            return audioContext;
+        }
+
+        function playNote(frequency, duration = 0.6) {
+            if (!frequency) return;
+            try {
+                const ctx = initAudio();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = frequency;
+                gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(ctx.currentTime);
+                osc.stop(ctx.currentTime + duration);
+            } catch (e) {
+                console.warn('Audio error:', e);
+                setStatus('⚠️', 'Ошибка звука');
+            }
+        }
+
+        // --- Распознавание ---
+        function initSpeech() {
+            const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SR) {
+                setStatus('❌', 'Браузер не поддерживает голосовой ввод');
+                listenBtn.disabled = true;
+                playLastBtn.disabled = true;
+                return null;
+            }
+            const rec = new SR();
+            rec.lang = 'ru-RU';
+            rec.continuous = false;
+            rec.interimResults = false;
+            rec.maxAlternatives = 1;
+
+            rec.onstart = () => {
+                isListening = true;
+                listenBtn.classList.add('listening');
+                listenBtn.innerHTML = '⏹️ Остановить';
+                setStatus('🔴', 'Слушаю ноту...');
+            };
+
+            rec.onerror = (e) => {
+                if (e.error === 'not-allowed') setStatus('⛔', 'Доступ к микрофону запрещён');
+                else if (e.error === 'no-speech') setStatus('😶', 'Не услышал ноты');
+                else setStatus('⚠️', `Ошибка: ${e.error}`);
+                stopListening();
+            };
+
+            rec.onend = () => {
+                stopListening();
+                if (statusText.innerText === 'Слушаю ноту...') {
+                    setStatus('⚪', 'Готов');
+                }
+            };
+
+            rec.onresult = (event) => {
+                const result = event.results[0];
+                if (!result) return;
+                let phrase = result[0].transcript.trim().toLowerCase();
+                // Удаляем лишние слова (оставляем только названия нот)
+                let foundNote = null;
+                const words = phrase.split(/\s+/);
+                for (let word of words) {
+                    // убираем знаки препинания
+                    word = word.replace(/[^a-zа-яё]/gi, '');
+                    const normalized = NOTE_SYNONYMS[word] || word;
+                    if (NOTES[normalized]) {
+                        foundNote = normalized;
+                        break;
+                    }
+                }
+                if (foundNote) {
+                    const freq = NOTES[foundNote];
+                    lastNote = { name: foundNote, frequency: freq };
+                    addMessage('user', foundNote);
+                    addMessage('bot', foundNote, freq);
+                    playNote(freq);
+                    setStatus('✅', `Сыграна нота ${foundNote.toUpperCase()}`);
+                } else {
+                    setStatus('😶', `Не распознана нота: "${phrase}"`);
+                    // Показываем в чате, что сказал пользователь
+                    addMessage('user', phrase);
+                    addMessage('bot', '❌ Не удалось распознать ноту. Скажите: до, ре, ми, фа, соль, ля, си', null);
+                }
+                stopListening();
+                setTimeout(() => {
+                    if (!isListening) setStatus('⚪', 'Готов');
+                }, 1500);
+            };
+            return rec;
+        }
+
+        // --- Вспомогательные ---
+        function setStatus(icon, text) {
+            statusIcon.innerText = icon || '⚪';
+            statusText.innerText = text || 'Готов';
+        }
+
+        function stopListening() {
+            if (recognition) {
+                try { recognition.stop(); } catch (_) {}
+            }
+            isListening = false;
+            listenBtn.classList.remove('listening');
+            listenBtn.innerHTML = '🎤 Слушать';
+        }
+
+        function addMessage(type, text, freq = null) {
+            if (emptyState) emptyState.style.display = 'none';
+            const wrapper = document.createElement('div');
+            wrapper.className = `message message-${type}`;
+
+            const avatar = document.createElement('div');
+            avatar.className = `avatar avatar-${type}`;
+            avatar.innerText = type === 'user' ? '🧑' : '🎵';
+
+            const bubble = document.createElement('div');
+            bubble.className = `bubble bubble-${type}`;
+
+            if (type === 'bot' && freq) {
+                const badge = document.createElement('span');
+                badge.className = 'note-badge';
+                badge.innerText = `🎵 ${freq.toFixed(1)} Гц`;
+                bubble.appendChild(badge);
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'note-name';
+                nameSpan.innerText = text.toUpperCase();
+                bubble.appendChild(nameSpan);
+            } else {
+                bubble.innerText = text;
+            }
+
+            if (type === 'user') {
+                wrapper.appendChild(bubble);
+                wrapper.appendChild(avatar);
+            } else {
+                wrapper.appendChild(avatar);
+                wrapper.appendChild(bubble);
+            }
+
+            messageArea.appendChild(wrapper);
+            const chatWindow = document.getElementById('chatWindow');
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        function clearMessages() {
+            messageArea.querySelectorAll('.message').forEach(el => el.remove());
+            if (emptyState) emptyState.style.display = 'block';
+            lastNote = null;
+            setStatus('⚪', 'Готов');
+            if (isListening) stopListening();
+        }
+
+        function playLast() {
+            if (lastNote && lastNote.frequency) {
+                playNote(lastNote.frequency);
+                setStatus('🔊', `Играю ${lastNote.name.toUpperCase()}`);
+                setTimeout(() => {
+                    if (!isListening) setStatus('⚪', 'Готов');
+                }, 800);
+            } else {
+                setStatus('😶', 'Нет сохранённой ноты');
+                // добавим пример
+                addExampleNotes();
+            }
+        }
+
+        function addExampleNotes() {
+            const notes = ['до', 'ре', 'ми'];
+            notes.forEach((note, i) => {
+                setTimeout(() => {
+                    const freq = NOTES[note];
+                    lastNote = { name: note, frequency: freq };
+                    addMessage('user', note);
+                    addMessage('bot', note, freq);
+                    playNote(freq);
+                    if (i === notes.length - 1) {
+                        setStatus('✅', 'Пример: до-ре-ми');
+                        setTimeout(() => {
+                            if (!isListening) setStatus('⚪', 'Готов');
+                        }, 1000);
+                    }
+                }, i * 700);
+            });
+        }
+
+        // --- Обработчики ---
+        function toggleListening() {
+            if (isListening) {
+                stopListening();
+                setStatus('⚪', 'Готов');
+                return;
+            }
+            if (!recognition) {
+                setStatus('❌', 'Распознавание не инициализировано');
+                return;
+            }
+            try {
+                recognition.start();
+            } catch (e) {
+                setStatus('⚠️', 'Ошибка запуска');
+                try { recognition.stop(); } catch (_) {}
+            }
+        }
+
+        // --- Инициализация ---
+        recognition = initSpeech();
+
+        listenBtn.addEventListener('click', toggleListening);
+        playLastBtn.addEventListener('click', playLast);
+        clearBtn.addEventListener('click', clearMessages);
+        exampleBtn.addEventListener('click', () => {
+            if (isListening) stopListening();
+            addExampleNotes();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && isListening) {
+                stopListening();
+                setStatus('⚪', 'Готов');
+            }
+        });
+
+        // Приветствие
+        setTimeout(() => {
+            if (messageArea.querySelectorAll('.message').length === 0) {
+                addMessage('bot', 'Скажите "до", "ре", "ми" — и я сыграю эту ноту!', null);
+            }
+        }, 400);
+
+        // Остановка звука при уходе
+        window.addEventListener('beforeunload', () => {
+            if (recognition && isListening) try { recognition.stop(); } catch (_) {}
+            if (audioContext) audioContext.close();
+        });
+
+    })();
+</script>
+</body>
+</html>
