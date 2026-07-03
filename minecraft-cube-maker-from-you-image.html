@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Minecraft-куб (Исправленный)</title>
+  <style>
+    body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    #ui {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.7);
+      color: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      pointer-events: none; /* Пропускаем клики сквозь фон */
+      backdrop-filter: blur(4px);
+      max-width: 300px;
+    }
+    #ui > * { pointer-events: auto; margin-bottom: 15px; }
+    label { display: block; font-weight: bold; margin-bottom: 8px; color: #ddd; }
+    input[type="file"] {
+      background: #333;
+      padding: 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .hint { font-size: 12px; color: #aaa; line-height: 1.4; }
+    .error-msg { color: #ff6b6b; font-weight: bold; display: none; margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+  <div id="ui">
+    <h3 style="margin:0; font-size: 18px;">Minecraft-куб</h3>
+    <label for="imageInput">Загрузить текстуру:</label>
+    <input type="file" id="imageInput" accept="image/*" />
+    <div class="hint">
+      Квадратное изображение (256×256 или 512×512).<br>
+      <strong>Важно:</strong> Запускай через локальный сервер (Live Server, Vite и т.д.), иначе текстура не загрузится!
+    </div>
+    <div id="errorMsg" class="error-msg">Ошибка загрузки текстуры. Проверьте консоль (F12).</div>
+  </div>
+
+  <!-- Подключаем Three.js -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    // --- Инициализация сцены ---
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87CEEB); // Цвет неба
+
+    const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(3, 3, 5);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: false }); // Отключаем сглаживание для пиксель-арта
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    document.body.appendChild(renderer.domElement);
+
+    // --- Освещение ---
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(5, 10, 7);
+    scene.add(dirLight);
+
+    // --- Куб ---
+    const geometry = new THREE.BoxGeometry(1, 1, 1);
+    
+    // Материал с настройками для четкой пиксельной текстуры
+    const material = new THREE.MeshStandardMaterial({
+      color: 0x8B4513, // Коричневый по умолчанию
+      roughness: 0.8,
+      metalness: 0.1,
+      // Критически важно для стиля Minecraft:
+      magFilter: THREE.NearestFilter, 
+      minFilter: THREE.NearestFilter,
+      generateMipmaps: false
+    });
+
+    const cube = new THREE.Mesh(geometry, material);
+    scene.add(cube);
+
+    // --- Управление камерой ---
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+
+    // --- Логика загрузки файла ---
+    const imageInput = document.getElementById('imageInput');
+    const errorMsg = document.getElementById('errorMsg');
+    const loader = new THREE.TextureLoader();
+
+    imageInput.addEventListener('change', (e) => {
+      const file = e.target.files;
+      if (!file) return;
+
+      errorMsg.style.display = 'none';
+
+      // Используем нативный TextureLoader Three.js — это надежнее, чем FileReader
+      loader.load(
+        URL.createObjectURL(file), // Превращаем файл в URL для браузера
+        (texture) => {
+          // Применяем фильтры снова, чтобы гарантировать "пиксельный" вид
+          texture.magFilter = THREE.NearestFilter;
+          texture.minFilter = THREE.NearestFilter;
+          texture.generateMipmaps = false;
+          
+          // Самое важное: говорим Three.js, что текстура изменилась
+          texture.needsUpdate = true; 
+
+          material.map = texture;
+          console.log('Текстура успешно применена!');
+        },
+        undefined, // onProgress (не нужен)
+        (err) => {
+          console.error('Ошибка загрузки текстуры:', err);
+          errorMsg.style.display = 'block';
+          errorMsg.textContent = 'Не удалось загрузить изображение. Проверьте консоль (F12).';
+        }
+      );
+    });
+
+    // --- Анимация ---
+    function animate() {
+      requestAnimationFrame(animate);
+      cube.rotation.y += 0.005;
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    // --- Ресайз окна ---
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
