@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Голосовой ИИ Бот</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+    body {
+      min-height: 100vh;
+      background: #0b1120;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    .card {
+      max-width: 640px;
+      width: 100%;
+      background: #141c2b;
+      border-radius: 40px;
+      padding: 30px 24px 28px;
+      box-shadow: 0 30px 60px rgba(0,0,0,0.7);
+      border: 1px solid #2a3a55;
+      transition: 0.3s;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .header h1 {
+      font-size: 26px;
+      font-weight: 700;
+      color: #f0f4ff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .header h1 span {
+      background: #2f4b8a;
+      padding: 2px 14px;
+      border-radius: 30px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #c0d4ff;
+    }
+    .sub {
+      color: #8495bc;
+      font-size: 14px;
+      margin-bottom: 22px;
+      border-bottom: 1px solid #253349;
+      padding-bottom: 14px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .chat-window {
+      background: #0e1625;
+      border-radius: 28px;
+      padding: 18px 16px;
+      min-height: 260px;
+      max-height: 420px;
+      overflow-y: auto;
+      border: 1px solid #253349;
+      margin-bottom: 22px;
+      scroll-behavior: smooth;
+    }
+    .chat-window::-webkit-scrollbar {
+      width: 5px;
+    }
+    .chat-window::-webkit-scrollbar-track {
+      background: #0e1625;
+    }
+    .chat-window::-webkit-scrollbar-thumb {
+      background: #3a4e75;
+      border-radius: 10px;
+    }
+    .message {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+      animation: fadeUp 0.25s ease;
+    }
+    .message-bot { justify-content: flex-start; }
+    .message-user { justify-content: flex-end; }
+    .avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      background: #1f2a40;
+      flex-shrink: 0;
+      border: 1px solid #2f405f;
+    }
+    .avatar-user { background: #2f4b8a; order: 1; }
+    .bubble {
+      max-width: 78%;
+      padding: 10px 16px;
+      border-radius: 22px;
+      font-size: 15px;
+      line-height: 1.5;
+      word-break: break-word;
+      background: #1f2a40;
+      color: #e2ecff;
+      border: 1px solid #2f405f;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+    .bubble-user {
+      background: #2f4b8a;
+      border-bottom-right-radius: 4px;
+      color: white;
+      border-color: #3f62a8;
+    }
+    .bubble-bot {
+      background: #1a253b;
+      border-bottom-left-radius: 4px;
+      color: #d0ddff;
+      border-color: #2c3d5e;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 28px 10px;
+      color: #62749c;
+      font-size: 15px;
+    }
+    .empty-state .icon { font-size: 44px; opacity: 0.5; margin-bottom: 6px; }
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .btn-group {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 14px 28px;
+      border: none;
+      border-radius: 60px;
+      font-size: 17px;
+      font-weight: 600;
+      background: #1f2a40;
+      color: #c8d6ff;
+      cursor: pointer;
+      flex: 1 1 140px;
+      border: 1px solid #2f405f;
+      transition: 0.2s;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+    }
+    .btn-primary {
+      background: #2f4b8a;
+      color: white;
+      border-color: #4a6bb0;
+      box-shadow: 0 8px 18px rgba(40, 80, 200, 0.3);
+    }
+    .btn-primary:active { transform: scale(0.96); background: #1f3a6a; }
+    .btn-primary.listening {
+      background: #b13a4a;
+      border-color: #d45a6a;
+      animation: pulse 1s infinite;
+    }
+    .btn-secondary:active { transform: scale(0.96); background: #141c2b; }
+    .btn:disabled { opacity: 0.4; pointer-events: none; filter: grayscale(0.3); }
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #0e1625;
+      padding: 8px 18px;
+      border-radius: 40px;
+      border: 1px solid #253349;
+      font-size: 14px;
+      color: #7f92b8;
+    }
+    .status-bar .badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .status-bar .badge .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #4a6b9a;
+      transition: 0.2s;
+    }
+    .dot.active { background: #f5b84a; box-shadow: 0 0 12px #f5b84a; }
+    .dot.recording { background: #f55a4a; box-shadow: 0 0 16px #f55a4a; }
+    .dot.success { background: #4acf7a; box-shadow: 0 0 12px #4acf7a; }
+    .footer-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 4px;
+    }
+    .footer-actions button {
+      background: transparent;
+      border: none;
+      color: #5f74a0;
+      font-size: 13px;
+      text-decoration: underline dotted;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 16px;
+      transition: 0.2s;
+    }
+    .footer-actions button:hover { color: #a0baf0; background: #1a253b; }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(200, 60, 60, 0.5); }
+      70% { box-shadow: 0 0 0 14px rgba(200, 60, 60, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(200, 60, 60, 0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0.2; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @media (max-width: 480px) {
+      .card { padding: 20px 14px; }
+      .btn { padding: 12px 16px; font-size: 15px; flex: 1 1 100px; }
+      .bubble { font-size: 14px; }
+    }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <h1>🎙️ Голосовой ИИ <span>бот</span></h1>
+    <span style="color:#62749c; font-size:13px;">v2.0</span>
+  </div>
+  <div class="sub">
+    <span>Нажми «Слушать» и говори — бот напишет, что ты сказал</span>
+    <span style="color:#4a6b9a;">⚡ онлайн</span>
+  </div>
+
+  <div class="chat-window" id="chatWindow">
+    <div id="messageArea">
+      <div class="empty-state" id="emptyState">
+        <div class="icon">🤖</div>
+        <p>Скажи что-нибудь, и я напишу это здесь</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="btn-group">
+      <button class="btn btn-primary" id="listenBtn">🎤 Слушать</button>
+      <button class="btn btn-secondary" id="clearBtn">🗑️ Очистить</button>
+    </div>
+
+    <div class="status-bar">
+      <div class="badge">
+        <span class="dot" id="statusDot"></span>
+        <span id="statusText">Готов</span>
+      </div>
+      <span id="msgCount">0 сообщений</span>
+    </div>
+
+    <div class="footer-actions">
+      <button id="exampleBtn">📝 пример фразы</button>
+      <button id="helpBtn">❓ помощь</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const messageArea = document.getElementById('messageArea');
+    const emptyState = document.getElementById('emptyState');
+    const listenBtn = document.getElementById('listenBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const statusText = document.getElementById('statusText');
+    const statusDot = document.getElementById('statusDot');
+    const msgCount = document.getElementById('msgCount');
+    const exampleBtn = document.getElementById('exampleBtn');
+    const helpBtn = document.getElementById('helpBtn');
+
+    let recognition = null;
+    let isListening = false;
+    let messageCounter = 0;
+
+    // --- Инициализация распознавания ---
+    function initSpeech() {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) {
+        setStatus('❌ Браузер не поддерживает голосовой ввод', 'error');
+        listenBtn.disabled = true;
+        return null;
+      }
+      const rec = new SR();
+      rec.lang = 'ru-RU';
+      rec.continuous = false;
+      rec.interimResults = false;
+      rec.maxAlternatives = 1;
+
+      rec.onstart = () => {
+        isListening = true;
+        listenBtn.classList.add('listening');
+        listenBtn.innerHTML = '⏹️ Остановить';
+        setStatus('🎤 Слушаю...', 'recording');
+      };
+
+      rec.onerror = (e) => {
+        console.warn('Speech error:', e.error);
+        if (e.error === 'not-allowed') setStatus('⛔ Доступ к микрофону запрещён', 'error');
+        else if (e.error === 'no-speech') setStatus('😶 Не услышал речи, попробуйте снова', 'idle');
+        else setStatus(`⚠️ Ошибка: ${e.error}`, 'error');
+        stopListening();
+      };
+
+      rec.onend = () => {
+        stopListening();
+        if (statusText.innerText === '🎤 Слушаю...') {
+          setStatus('⚪ Готов', 'idle');
+        }
+      };
+
+      rec.onresult = (event) => {
+        const result = event.results[0];
+        if (!result) return;
+        const transcript = result[0].transcript.trim();
+        if (!transcript) {
+          setStatus('😶 Пустая фраза', 'idle');
+          return;
+        }
+        // Добавляем сообщение пользователя
+        addMessage('user', transcript);
+        // Бот пишет то же самое
+        addMessage('bot', `"${transcript}"`);
+        setStatus('✅ Распознано!', 'success');
+        stopListening();
+        setTimeout(() => {
+          if (!isListening) setStatus('⚪ Готов', 'idle');
+        }, 1500);
+      };
+      return rec;
+    }
+
+    // --- Вспомогательные ---
+    function setStatus(text, type = 'idle') {
+      statusText.innerText = text;
+      statusDot.className = 'dot';
+      if (type === 'recording') statusDot.classList.add('recording');
+      else if (type === 'success') statusDot.classList.add('success');
+      else if (type === 'error') statusDot.style.background = '#f55a4a';
+      else statusDot.classList.add('active'); // idle
+    }
+
+    function stopListening() {
+      if (recognition) {
+        try { recognition.stop(); } catch (_) {}
+      }
+      isListening = false;
+      listenBtn.classList.remove('listening');
+      listenBtn.innerHTML = '🎤 Слушать';
+    }
+
+    function addMessage(type, text) {
+      if (emptyState) emptyState.style.display = 'none';
+      const wrapper = document.createElement('div');
+      wrapper.className = `message message-${type}`;
+
+      const avatar = document.createElement('div');
+      avatar.className = `avatar avatar-${type}`;
+      avatar.innerText = type === 'user' ? '🧑' : '🤖';
+
+      const bubble = document.createElement('div');
+      bubble.className = `bubble bubble-${type}`;
+      bubble.innerText = text;
+
+      if (type === 'user') {
+        wrapper.appendChild(bubble);
+        wrapper.appendChild(avatar);
+      } else {
+        wrapper.appendChild(avatar);
+        wrapper.appendChild(bubble);
+      }
+      messageArea.appendChild(wrapper);
+      messageCounter++;
+      msgCount.innerText = `${messageCounter} сообщений`;
+      const chatWindow = document.getElementById('chatWindow');
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    function clearMessages() {
+      messageArea.querySelectorAll('.message').forEach(el => el.remove());
+      if (emptyState) emptyState.style.display = 'block';
+      messageCounter = 0;
+      msgCount.innerText = '0 сообщений';
+      setStatus('⚪ Готов', 'idle');
+      if (isListening) stopListening();
+    }
+
+    function addExample() {
+      const phrases = [
+        'Привет, как дела?',
+        'Сегодня отличная погода',
+        'ИИ бот распознаёт речь',
+        'Я люблю программирование',
+        'Сделай сайт с голосовым вводом'
+      ];
+      const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+      addMessage('user', phrase);
+      addMessage('bot', `"${phrase}"`);
+      setStatus('💬 Пример добавлен', 'success');
+      setTimeout(() => {
+        if (!isListening) setStatus('⚪ Готов', 'idle');
+      }, 1400);
+    }
+
+    // --- Обработчики ---
+    function toggleListening() {
+      if (isListening) {
+        stopListening();
+        setStatus('⚪ Готов', 'idle');
+        return;
+      }
+      if (!recognition) {
+        setStatus('❌ Распознавание не инициализировано', 'error');
+        return;
+      }
+      try {
+        recognition.start();
+      } catch (e) {
+        setStatus('⚠️ Ошибка запуска', 'error');
+        try { recognition.stop(); } catch (_) {}
+        setTimeout(() => { try { recognition.start(); } catch (_) {} }, 300);
+      }
+    }
+
+    // --- Инициализация ---
+    recognition = initSpeech();
+
+    listenBtn.addEventListener('click', toggleListening);
+    clearBtn.addEventListener('click', clearMessages);
+    exampleBtn.addEventListener('click', () => {
+      if (isListening) stopListening();
+      addExample();
+    });
+    helpBtn.addEventListener('click', () => {
+      addMessage('bot', 'Нажмите "Слушать" и говорите в микрофон. Я буду писать ваши слова. Можно использовать кнопку "Пример" для демонстрации.');
+    });
+
+    // Приветствие
+    setTimeout(() => {
+      if (messageArea.querySelectorAll('.message').length === 0) {
+        addMessage('bot', 'Нажмите "Слушать" и скажите что-нибудь. Я напишу ваши слова!');
+      }
+    }, 400);
+
+    // Escape для остановки
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && isListening) {
+        stopListening();
+        setStatus('⚪ Готов', 'idle');
+      }
+    });
+
+    window.addEventListener('beforeunload', () => {
+      if (recognition && isListening) try { recognition.stop(); } catch (_) {}
+    });
+  })();
+</script>
+</body>
+</html>
