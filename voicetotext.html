@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Голос → Текст</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            min-height: 100vh;
+            background: linear-gradient(145deg, #1e1e2f, #2a2a3f);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            padding: 20px;
+        }
+        .container {
+            background: #2d2d44;
+            padding: 30px 25px 25px 25px;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.7);
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+        .title {
+            color: #f5c842;
+            font-size: 26px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+        }
+        .lang-selector {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .lang-btn {
+            background: #3d3d5c;
+            color: #aaa;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 1px solid transparent;
+        }
+        .lang-btn.active {
+            background: #f5c842;
+            color: #1e1e2f;
+            border-color: #f5c842;
+            box-shadow: 0 0 12px rgba(245, 200, 66, 0.3);
+        }
+        .lang-btn:hover:not(.active) {
+            background: #4a4a6a;
+            color: #ddd;
+        }
+
+        /* Кнопка записи */
+        .record-section {
+            margin-bottom: 20px;
+        }
+        .record-btn {
+            background: #3d3d5c;
+            color: #fff;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid #555;
+        }
+        .record-btn:hover {
+            background: #4a4a6a;
+            transform: scale(1.02);
+        }
+        .record-btn.recording {
+            background: #e74c3c;
+            border-color: #e74c3c;
+            box-shadow: 0 0 25px rgba(231, 76, 60, 0.4);
+            animation: pulse 1.2s infinite;
+        }
+        .record-btn.recording:hover {
+            background: #c0392b;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 10px rgba(231, 76, 60, 0.4); }
+            50% { box-shadow: 0 0 30px rgba(231, 76, 60, 0.8); }
+            100% { box-shadow: 0 0 10px rgba(231, 76, 60, 0.4); }
+        }
+        .record-btn .icon {
+            font-size: 22px;
+        }
+
+        .status {
+            font-size: 14px;
+            color: #888;
+            margin-top: 8px;
+            min-height: 24px;
+        }
+        .status.listening {
+            color: #e74c3c;
+            font-weight: 600;
+        }
+        .status.finished {
+            color: #5f9ea0;
+        }
+        .status.error {
+            color: #e74c3c;
+        }
+
+        /* Поле с текстом */
+        .result-box {
+            background: #1a1a2e;
+            border-radius: 16px;
+            padding: 20px;
+            min-height: 100px;
+            margin-top: 10px;
+            border: 1px solid #3d3d5c;
+            color: #ddd;
+            font-size: 18px;
+            line-height: 1.6;
+            text-align: left;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+        .result-box.placeholder {
+            color: #666;
+            font-style: italic;
+            text-align: center;
+        }
+
+        .clear-btn {
+            background: transparent;
+            color: #888;
+            border: 1px solid #555;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            margin-top: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .clear-btn:hover {
+            background: #3d3d5c;
+            color: #ddd;
+        }
+
+        @media (max-width: 520px) {
+            .container { padding: 20px 15px; }
+            .title { font-size: 22px; }
+            .record-btn { padding: 12px 24px; font-size: 16px; }
+            .result-box { font-size: 16px; min-height: 80px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title">🎙️ Голос → Текст</div>
+
+        <div class="lang-selector">
+            <button class="lang-btn active" data-lang="ru-RU">🇷🇺 Русский</button>
+            <button class="lang-btn" data-lang="en-US">🇺🇸 English</button>
+        </div>
+
+        <div class="record-section">
+            <button class="record-btn" id="recordBtn">
+                <span class="icon">🎤</span>
+                <span id="btnText">Начать запись</span>
+            </button>
+            <div class="status" id="status">Нажмите, чтобы говорить</div>
+        </div>
+
+        <div class="result-box placeholder" id="resultBox">
+            Здесь появится распознанный текст...
+        </div>
+
+        <button class="clear-btn" id="clearBtn">🗑 Очистить</button>
+    </div>
+
+    <script>
+        // === Элементы ===
+        const recordBtn = document.getElementById('recordBtn');
+        const btnText = document.getElementById('btnText');
+        const status = document.getElementById('status');
+        const resultBox = document.getElementById('resultBox');
+        const clearBtn = document.getElementById('clearBtn');
+        const langBtns = document.querySelectorAll('.lang-btn');
+
+        // === Переменные ===
+        let recognition = null;
+        let isRecording = false;
+        let finalText = '';
+        let currentLang = 'ru-RU';
+
+        // === Инициализация распознавания ===
+        function initRecognition(lang) {
+            // Проверка поддержки
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                status.textContent = '❌ Ваш браузер не поддерживает распознавание речи. Используйте Chrome или Edge.';
+                status.className = 'status error';
+                recordBtn.disabled = true;
+                return null;
+            }
+
+            const rec = new SpeechRecognition();
+            rec.lang = lang;
+            rec.continuous = true;      // непрерывная запись
+            rec.interimResults = true;   // показывать промежуточные результаты
+
+            // События
+            rec.onstart = () => {
+                isRecording = true;
+                recordBtn.classList.add('recording');
+                btnText.textContent = 'Остановить запись';
+                status.textContent = '🎤 Слушаю... Говорите!';
+                status.className = 'status listening';
+                resultBox.classList.remove('placeholder');
+            };
+
+            rec.onerror = (event) => {
+                if (event.error === 'no-speech') {
+                    status.textContent = '⏳ Не слышно речи... Попробуйте ещё раз.';
+                    return;
+                }
+                if (event.error === 'not-allowed') {
+                    status.textContent = '❌ Доступ к микрофону отклонён. Разрешите в настройках браузера.';
+                    status.className = 'status error';
+                    stopRecording();
+                    return;
+                }
+                status.textContent = `❌ Ошибка: ${event.error}`;
+                status.className = 'status error';
+                stopRecording();
+            };
+
+            rec.onend = () => {
+                if (isRecording) {
+                    // Если запись ещё активна, но браузер остановил — перезапускаем
+                    rec.start();
+                } else {
+                    // Штатная остановка
+                    recordBtn.classList.remove('recording');
+                    btnText.textContent = 'Начать запись';
+                    status.textContent = '⏹ Запись завершена';
+                    status.className = 'status finished';
+                }
+            };
+
+            rec.onresult = (event) => {
+                let interimText = '';
+                let final = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        final += transcript;
+                    } else {
+                        interimText += transcript;
+                    }
+                }
+
+                // Добавляем финальный текст в общую строку
+                if (final) {
+                    finalText += final + ' ';
+                }
+
+                // Отображаем: финальный + промежуточный (показываем курсивом)
+                let displayText = finalText;
+                if (interimText) {
+                    displayText += `<em style="color:#f5c842;">${interimText}</em>`;
+                }
+                resultBox.innerHTML = displayText || 'Говорите...';
+            };
+
+            return rec;
+        }
+
+        // === Запуск / остановка ===
+        function startRecording() {
+            if (!recognition) {
+                recognition = initRecognition(currentLang);
+                if (!recognition) return;
+            }
+            try {
+                recognition.start();
+            } catch (e) {
+                // Если уже запущено — игнорируем
+                if (e.name === 'InvalidStateError') {
+                    // Уже запущено, ничего не делаем
+                } else {
+                    status.textContent = `❌ Ошибка запуска: ${e.message}`;
+                    status.className = 'status error';
+                }
+            }
+        }
+
+        function stopRecording() {
+            isRecording = false;
+            if (recognition) {
+                try {
+                    recognition.stop();
+                } catch (e) {}
+            }
+            recordBtn.classList.remove('recording');
+            btnText.textContent = 'Начать запись';
+            status.textContent = '⏹ Запись завершена';
+            status.className = 'status finished';
+        }
+
+        // === Переключение кнопки записи ===
+        recordBtn.addEventListener('click', () => {
+            if (isRecording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        });
+
+        // === Переключение языка ===
+        langBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                langBtns.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentLang = this.dataset.lang;
+
+                // Если запись активна — останавливаем
+                if (isRecording) {
+                    stopRecording();
+                }
+
+                // Пересоздаём распознавание с новым языком
+                recognition = initRecognition(currentLang);
+                status.textContent = `🌐 Язык: ${currentLang === 'ru-RU' ? 'Русский' : 'English'}`;
+                status.className = 'status';
+            });
+        });
+
+        // === Очистка текста ===
+        clearBtn.addEventListener('click', () => {
+            finalText = '';
+            resultBox.innerHTML = 'Здесь появится распознанный текст...';
+            resultBox.className = 'result-box placeholder';
+        });
+
+        // === Инициализация при загрузке ===
+        recognition = initRecognition(currentLang);
+        status.textContent = 'Нажмите, чтобы говорить';
+    </script>
+</body>
+</html>
