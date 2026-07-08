@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice + Camera To Text</title>
+    <!-- Подключаем библиотеку для распознавания текста с картинки (OCR) -->
+    <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #e0e5ec;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 400px;
+            height: 780px;
+            background: #ffffff;
+            border-radius: 30px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            padding: 20px;
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            min-height: 70px;
+        }
+        .back-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            flex-grow: 1;
+            padding: 20px;
+            animation: fade 0.3s ease;
+            overflow-y: auto;
+        }
+        .screen.active { display: flex; }
+        @keyframes fade { from { opacity: 0.5; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
+
+        /* --- Экран Старт --- */
+        #start-screen {
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+        }
+        .btn-start {
+            background: #3b5998;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(59, 89, 152, 0.3);
+        }
+        .settings-badge {
+            margin-top: 30px;
+            padding: 15px 30px;
+            border-radius: 30px;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: 0.2s;
+        }
+        .settings-badge:hover { background: #e9ecef; }
+
+        /* --- Экран Записи --- */
+        #record-screen {
+            justify-content: flex-start;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .action-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 30px;
+            width: 100%;
+            align-items: center;
+        }
+
+        .btn-circle {
+            width: 140px;
+            height: 140px;
+            background: #f0f2f5;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 60px;
+            cursor: pointer;
+            position: relative;
+            transition: 0.2s;
+            border: 3px solid #ccc;
+        }
+        .btn-circle:active { transform: scale(0.95); }
+        .btn-circle.recording {
+            border-color: #e74c3c;
+            box-shadow: 0 0 0 15px rgba(231, 76, 60, 0.2);
+            animation: pulse 1s infinite;
+        }
+        .btn-circle.camera-active {
+            border-color: #3b5998;
+            box-shadow: 0 0 0 15px rgba(59, 89, 152, 0.2);
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4); }
+            70% { box-shadow: 0 0 0 20px rgba(231, 76, 60, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+        }
+
+        .status-text {
+            margin-top: 10px;
+            color: #666;
+            font-size: 14px;
+            min-height: 24px;
+            text-align: center;
+        }
+
+        /* Модальное окно Камеры */
+        #cameraModal {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: black;
+            z-index: 100;
+            flex-direction: column;
+        }
+        #cameraModal.active { display: flex; }
+        #videoPreview {
+            flex-grow: 1;
+            width: 100%;
+            object-fit: cover;
+            background: #000;
+        }
+        .camera-controls {
+            padding: 20px;
+            display: flex;
+            justify-content: space-around;
+            background: #222;
+        }
+        .cam-btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: none;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .cam-btn.close { background: #e74c3c; color: white; }
+        .cam-btn.capture { background: #2ecc71; color: white; }
+
+        /* --- Экран Чат --- */
+        #chat-screen {
+            padding: 10px;
+            background: #f7f9fc;
+        }
+        .chat-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding-bottom: 20px;
+        }
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 15px;
+            line-height: 1.4;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .msg-user {
+            align-self: flex-end;
+            background: #d1e7dd;
+            border-bottom-right-radius: 4px;
+            font-family: monospace;
+            letter-spacing: 2px;
+            color: #555;
+        }
+        .msg-bot {
+            align-self: flex-start;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-bottom-left-radius: 4px;
+        }
+        .bot-avatar {
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 22px;
+            background: #eee;
+        }
+
+        /* --- Экран Настроек --- */
+        #settings-screen {
+            padding: 20px;
+            background: #f7f9fc;
+        }
+        .setting-group {
+            background: white;
+            border-radius: 15px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .setting-title {
+            font-weight: bold;
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+            display: block;
+        }
+        .toggle-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+        }
+        .toggle-row:last-child { border-bottom: none; }
+        .toggle-row.active .toggle-text { color: #3b5998; font-weight: bold; }
+        .toggle-circle {
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            border: 2px solid #ccc;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .toggle-row.active .toggle-circle {
+            border-color: #3b5998; background: #3b5998; color: white;
+        }
+        .toggle-circle::after { content: "✓"; font-size: 12px; color: transparent; }
+        .toggle-row.active .toggle-circle::after { color: white; }
+
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+
+    <!-- Экран 1: Старт -->
+    <div id="start-screen" class="screen active">
+        <div class="header" style="border:none; justify-content: center;">
+            SMART RECOGNITION
+        </div>
+        <button class="btn-start" onclick="goToRecord()">СТАРТ</button>
+        <div class="settings-badge" onclick="goToSettings()">⚙️ НАСТРОЙКИ</div>
+        <div style="margin-top: 40px; font-size: 13px; color: #999; text-align: center;">
+            Язык: <span id="mainLangDisplay">Русский</span>
+        </div>
+    </div>
+
+    <!-- Экран 2: Запись -->
+    <div id="record-screen" class="screen">
+        <div class="header">
+            <button class="back-btn" onclick="goToStart()">←</button>
+            <span>Выберите ввод</span>
+            <span></span>
+        </div>
+        
+        <div class="action-container">
+            <!-- Кнопка Микрофон -->
+            <div>
+                <div id="micButton" class="btn-circle" onclick="toggleRecording()">🎤</div>
+                <div class="status-text" style="margin-top: 5px;">Голос</div>
+            </div>
+
+            <!-- Кнопка Камера -->
+            <div>
+                <div id="camButton" class="btn-circle" onclick="openCamera()">📷</div>
+                <div class="status-text" style="margin-top: 5px;">Текст с фото</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Экран 3: Чат -->
+    <div id="chat-screen" class="screen">
+        <div class="header">
+            <button class="back-btn" onclick="goToRecord()">←</button>
+            <span id="chatTitle">Чат с Ботом</span>
+            <span id="botHeaderIcon">🤖</span>
+        </div>
+        <div class="chat-container" id="chatContainer">
+            <div style="text-align: center; color: #aaa; font-size: 13px; margin-bottom: 10px;">
+                Скажите или сфотографируйте текст...
+            </div>
+        </div>
+    </div>
+
+    <!-- Экран 4: Настройки -->
+    <div id="settings-screen" class="screen">
+        <div class="header">
+            <button class="back-btn" onclick="goToStart()">←</button>
+            <span>⚙️ Настройки</span>
+            <span></span>
+        </div>
+        <div class="setting-group">
+            <span class="setting-title">Язык (Language)</span>
+            <div class="toggle-row" id="langRu" onclick="setLanguage('ru')">
+                <span class="toggle-text">🇷🇺 Русский</span>
+                <div class="toggle-circle"></div>
+            </div>
+            <div class="toggle-row" id="langEn" onclick="setLanguage('en')">
+                <span class="toggle-text">🇬🇧 English</span>
+                <div class="toggle-circle"></div>
+            </div>
+        </div>
+        <div class="setting-group">
+            <span class="setting-title">Пол бота (Gender)</span>
+            <div class="toggle-row" id="genderFemme" onclick="setGender('femme')">
+                <span class="toggle-text">👩‍🦰 Женщина</span>
+                <div class="toggle-circle"></div>
+            </div>
+            <div class="toggle-row" id="genderBoy" onclick="setGender('boy')">
+                <span class="toggle-text">👨 Мужчина</span>
+                <div class="toggle-circle"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно Камеры (всплывает поверх) -->
+    <div id="cameraModal">
+        <video id="videoPreview" autoplay playsinline></video>
+        <div class="camera-controls">
+            <button class="cam-btn close" onclick="closeCamera()">✕ Закрыть</button>
+            <button class="cam-btn capture" onclick="capturePhoto()">📸 Сфоткать</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // Переменные состояния
+    let currentLang = 'ru-RU';
+    let currentGender = 'boy';
+    let isRecording = false;
+    let recognition = null;
+    let videoStream = null;
+    
+    const chatContainer = document.getElementById('chatContainer');
+    const micButton = document.getElementById('micButton');
+    const camButton = document.getElementById('camButton');
+    const statusText = document.getElementById('statusText');
+    const botHeaderIcon = document.getElementById('botHeaderIcon');
+    const mainLangDisplay = document.getElementById('mainLangDisplay');
+    const videoPreview = document.getElementById('videoPreview');
+    const cameraModal = document.getElementById('cameraModal');
+
+    // --- Инициализация API распознавания голоса ---
+    function initRecognition() {
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = currentLang;
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                statusText.innerText = "Распознано!";
+                stopRecordingUI();
+                processInput(transcript, "Голосовой ввод");
+            };
+
+            recognition.onerror = (event) => {
+                statusText.innerText = "Ошибка: " + event.error;
+                stopRecordingUI();
+            };
+
+            recognition.onend = () => { if(isRecording) stopRecordingUI(); };
+        } else {
+            alert("Браузер не поддерживает голосовой ввод.");
+        }
+    }
+
+    // --- Навигация ---
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+    function goToStart() { showScreen('start-screen'); }
+    function goToRecord() { showScreen('record-screen'); }
+    function goToSettings() { showScreen('settings-screen'); }
+
+    // --- Настройки ---
+    function setLanguage(langCode) {
+        document.getElementById('langRu').classList.toggle('active', langCode === 'ru');
+        document.getElementById('langEn').classList.toggle('active', langCode === 'en');
+        currentLang = langCode === 'ru' ? 'ru-RU' : 'en-US';
+        mainLangDisplay.innerText = langCode === 'ru' ? 'Русский' : 'English';
+        initRecognition();
+        stopRecording();
+    }
+
+    function setGender(gender) {
+        document.getElementById('genderFemme').classList.toggle('active', gender === 'femme');
+        document.getElementById('genderBoy').classList.toggle('active', gender === 'boy');
+        currentGender = gender;
+        botHeaderIcon.innerText = gender === 'femme' ? '👩‍💻' : '🤖';
+    }
+
+    // --- Логика Записи Голоса ---
+    function toggleRecording() {
+        if (!recognition) initRecognition();
+        if (isRecording) stopRecording();
+        else startRecording();
+    }
+    function startRecording() {
+        try {
+            recognition.start();
+            isRecording = true;
+            micButton.classList.add('recording');
+            statusText.innerText = "Слушаю...";
+        } catch (error) { console.error(error); }
+    }
+    function stopRecordingUI() {
+        isRecording = false;
+        micButton.classList.remove('recording');
+    }
+    function stopRecording() {
+        if (recognition) {
+            recognition.stop();
+            stopRecordingUI();
+            statusText.innerText = "Готово";
+        }
+    }
+
+    // --- Логика Камеры (OCR) ---
+    async function openCamera() {
+        try {
+            // Запрашиваем доступ к камере
+            videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+            videoPreview.srcObject = videoStream;
+            cameraModal.classList.add('active');
+            camButton.classList.add('camera-active');
+        } catch (err) {
+            alert("Не удалось получить доступ к камере: " + err.message);
+        }
+    }
+
+    function closeCamera() {
+        if (videoStream) {
+            videoStream.getTracks().forEach(track => track.stop());
+            videoStream = null;
+        }
+        cameraModal.classList.remove('active');
+        camButton.classList.remove('camera-active');
+        statusText.innerText = "Камера закрыта";
+    }
+
+    async function capturePhoto() {
+        statusText.innerText = "Распознаю текст на фото...";
+        
+        // 1. Создаем Canvas и рисуем на нем текущий кадр с камеры
+        const canvas = document.createElement('canvas');
+        canvas.width = videoPreview.videoWidth;
+        canvas.height = videoPreview.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(videoPreview, 0, 0, canvas.width, canvas.height);
+        
+        // Преобразуем в формат base64 (картинка)
+        const imageDataUrl = canvas.toDataURL('image/jpeg');
+
+        // 2. Запускаем Tesseract (распознавание текста). 
+        // Оно работает в фоне, может занять 2-5 секунд.
+        try {
+            const { data: { text } } = await Tesseract.recognize(imageDataUrl, currentLang === 'ru-RU' ? 'rus' : 'eng', {
+                logger: m => console.log(m) // Логи для отладки
+            });
+
+            closeCamera();
+
+            if (text.trim().length === 0) {
+                statusText.innerText = "Текст не найден на фото!";
+                return;
+            }
+
+            statusText.innerText = "Текст распознан!";
+            processInput(text.trim(), "Ввод с камеры");
+
+        } catch (error) {
+            console.error(error);
+            statusText.innerText = "Ошибка распознавания";
+            closeCamera();
+        }
+    }
+
+    // --- Общая логика обработки входящего текста (Голос или Камера) ---
+    function processInput(realText, sourceType) {
+        showScreen('chat-screen');
+
+        // 1. Шифрование (все буквы и цифры превращаем в X)
+        const encryptedText = realText.replace(/[a-zA-Zа-яА-ЯёЁ0-9]/g, 'X');
+
+        // 2. Сообщение пользователя
+        const userMsg = document.createElement('div');
+        userMsg.className = 'message msg-user';
+        // Добавляем маленькую пометку, откуда пришло (голос или камера)
+        userMsg.innerHTML = `<div style="font-size: 10px; color: #999; margin-bottom: 4px;">${sourceType}</div>${encryptedText}`;
+        chatContainer.appendChild(userMsg);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+
+        // 3. Ответ бота
+        setTimeout(() => {
+            const botMsg = document.createElement('div');
+            botMsg.className = 'message msg-bot';
+            const avatar = currentGender === 'femme' ? '👩‍💻' : '🤖';
+            
+            botMsg.innerHTML = `
+                <div class="bot-avatar">${avatar}</div>
+                <div>
+                    <div style="font-size: 11px; color: #666; font-weight: bold;">РАСШИФРОВКА:</div>
+                    <div style="color: #333;">${realText}</div>
+                </div>
+            `;
+            chatContainer.appendChild(botMsg);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            statusText.innerText = "Готово!";
+        }, 1000);
+    }
+
+    // Инициализация
+    initRecognition();
+    setLanguage('ru');
+    setGender('boy');
+
+</script>
+
+</body>
+</html>
