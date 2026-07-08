@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Камера ПК / Мобильный</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background: #1a1a2e;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* Стили для мобильного экрана */
+        .app-container {
+            width: 100%;
+            max-width: 400px;
+            background: #16213e;
+            border-radius: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            min-height: 600px;
+        }
+
+        h2 {
+            text-align: center;
+            margin: 0 0 15px 0;
+            font-size: 22px;
+            color: #e94560;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        /* --- Блок с видео (Камера) --- */
+        .camera-wrapper {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 4/3; /* Соотношение сторон как у фото */
+            background: #000;
+            border-radius: 15px;
+            overflow: hidden;
+            border: 2px solid #0f3460;
+            margin-bottom: 15px;
+        }
+
+        #videoElement {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transform: scaleX(-1); /* Зеркалим, как в зеркале (удобно для селфи) */
+        }
+
+        #capturedImage {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: none; /* Скрыто по умолчанию */
+        }
+
+        /* Оверлей "Идет запись" */
+        .recording-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 0, 0, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            display: none;
+            align-items: center;
+            gap: 5px;
+        }
+        .recording-indicator span {
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
+            display: inline-block;
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* Кнопки управления */
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            flex: 1;
+            text-align: center;
+        }
+        
+        .btn:active { transform: scale(0.95); }
+
+        .btn-start {
+            background: #e94560;
+            color: white;
+        }
+        .btn-start:hover { background: #c73652; }
+
+        .btn-capture {
+            background: #0f3460;
+            color: white;
+        }
+        .btn-capture:hover { background: #1a4a7a; }
+
+        .btn-reset {
+            background: #533483;
+            color: white;
+        }
+        .btn-reset:hover { background: #6f42a8; }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #statusText {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+            color: #aaa;
+            min-height: 20px;
+        }
+
+        /* Сообщение об ошибке, если камеры нет */
+        #errorMessage {
+            color: #e94560;
+            text-align: center;
+            display: none;
+            padding: 20px;
+            border: 1px solid #e94560;
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <h2>📷 Камера</h2>
+
+    <div class="camera-wrapper">
+        <!-- Видео поток -->
+        <video id="videoElement" autoplay playsinline></video>
+        <!-- Сюда вставится сделанное фото -->
+        <img id="capturedImage" src="" alt="Снимок">
+        
+        <div class="recording-indicator" id="recIndicator">
+            <span></span> LIVE
+        </div>
+    </div>
+
+    <div class="controls" id="controlButtons">
+        <button class="btn btn-start" id="btnStart" onclick="startCamera()">▶️ Включить</button>
+        <button class="btn btn-capture" id="btnCapture" onclick="takePhoto()" disabled>📸 Снимок</button>
+        <button class="btn btn-reset" id="btnReset" onclick="resetCamera()" disabled>🔄 Сброс</button>
+    </div>
+
+    <div id="statusText">Нажмите "Включить", чтобы запустить камеру</div>
+    <div id="errorMessage">⚠️ Ошибка: Не удалось получить доступ к камере. Проверьте разрешения.</div>
+</div>
+
+<script>
+    // Получаем элементы
+    const video = document.getElementById('videoElement');
+    const imgCapture = document.getElementById('capturedImage');
+    const btnStart = document.getElementById('btnStart');
+    const btnCapture = document.getElementById('btnCapture');
+    const btnReset = document.getElementById('btnReset');
+    const statusText = document.getElementById('statusText');
+    const recIndicator = document.getElementById('recIndicator');
+    const errorMsg = document.getElementById('errorMessage');
+
+    let stream = null; // Переменная для хранения потока камеры
+
+    // --- 1. Запуск камеры ---
+    async function startCamera() {
+        statusText.innerText = "Запрос разрешения...";
+        
+        // Настройки камеры (просим фронтальную камеру, но если нет - возьмет любую)
+        const constraints = {
+            video: {
+                facingMode: "user", // "user" - фронталка, "environment" - основная (задняя) на телефоне
+                width: { ideal: 640 },
+                height: { ideal: 480 }
+            },
+            audio: false
+        };
+
+        try {
+            // Запрашиваем доступ
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
+            
+            // Подключаем поток к видео элементу
+            video.srcObject = stream;
+            
+            // Меняем интерфейс
+            btnStart.disabled = true;
+            btnCapture.disabled = false;
+            btnReset.disabled = false;
+            statusText.innerText = "Камера активна! Нажмите 'Снимок' для фото.";
+            recIndicator.style.display = 'flex';
+            errorMsg.style.display = 'none';
+            
+            // Прячем старое фото, если было
+            imgCapture.style.display = 'none';
+            video.style.display = 'block';
+
+        } catch (err) {
+            console.error("Ошибка камеры:", err);
+            errorMsg.style.display = 'block';
+            statusText.innerText = "Ошибка доступа к камере.";
+            recIndicator.style.display = 'none';
+        }
+    }
+
+    // --- 2. Сделать снимок (Фото) ---
+    function takePhoto() {
+        if (!stream) return;
+
+        statusText.innerText = "Фото делается...";
+        
+        // Создаем невидимый canvas (холст) для захвата кадра
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        
+        // Рисуем текущий кадр из видео на холст
+        const ctx = canvas.getContext('2d');
+        
+        // Если на телефоне используем фронталку, картинка обычно зеркалится
+        // Зеркалим на холсте, чтобы совпадало с тем, что видит пользователь
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // Преобразуем холст в картинку (base64)
+        const imageDataUrl = canvas.toDataURL('image/png');
+
+        // Показываем картинку на месте видео
+        imgCapture.src = imageDataUrl;
+        imgCapture.style.display = 'block';
+        video.style.display = 'none'; // Скрываем видео
+        
+        // Обновляем статус
+        statusText.innerText = "Фото готово! Нажмите 'Сброс', чтобы снять ещё.";
+        recIndicator.style.display = 'none';
+    }
+
+    // --- 3. Сброс камеры (чтобы снять новое фото) ---
+    function resetCamera() {
+        // Останавливаем и очищаем поток, чтобы перезапустить
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            stream = null;
+            video.srcObject = null;
+        }
+
+        // Сбрасываем интерфейс
+        btnStart.disabled = false;
+        btnCapture.disabled = true;
+        btnReset.disabled = true;
+        imgCapture.style.display = 'none';
+        video.style.display = 'block';
+        recIndicator.style.display = 'none';
+        statusText.innerText = "Камера отключена. Нажмите 'Включить'.";
+        errorMsg.style.display = 'none';
+    }
+
+    // --- Доп. логика для мобильных: Остановка видео при выходе ---
+    // Это поможет экономить батарею, если пользователь закроет вкладку
+    window.addEventListener('beforeunload', () => {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+        }
+    });
+</script>
+
+</body>
+</html>
