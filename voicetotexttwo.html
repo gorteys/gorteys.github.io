@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice To Text App (Real API)</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #e0e5ec;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 400px;
+            height: 780px;
+            background: #ffffff;
+            border-radius: 30px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            padding: 20px;
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .back-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            flex-grow: 1;
+            padding: 20px;
+            animation: fade 0.3s ease;
+        }
+        .screen.active { display: flex; }
+        @keyframes fade { from { opacity: 0.5; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
+
+        /* --- Экран Старт --- */
+        #start-screen {
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+        }
+        .btn-start {
+            background: #3b5998;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(59, 89, 152, 0.3);
+        }
+        .settings-badge {
+            margin-top: 30px;
+            padding: 15px 30px;
+            border-radius: 30px;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* --- Экран Записи --- */
+        #record-screen {
+            justify-content: center;
+            align-items: center;
+        }
+        .mic-circle {
+            width: 140px;
+            height: 140px;
+            background: #f0f2f5;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 60px;
+            cursor: pointer;
+            position: relative;
+            transition: 0.2s;
+            border: 3px solid #ccc;
+        }
+        .mic-circle:active { transform: scale(0.95); }
+        .mic-circle.recording {
+            border-color: #e74c3c;
+            box-shadow: 0 0 0 15px rgba(231, 76, 60, 0.2);
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4); }
+            70% { box-shadow: 0 0 0 20px rgba(231, 76, 60, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
+        }
+
+        /* --- Экран Чат --- */
+        #chat-screen {
+            padding: 10px;
+            background: #f7f9fc;
+        }
+        .chat-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding-bottom: 20px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 15px;
+            line-height: 1.4;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        /* Зашифрованное сообщение пользователя */
+        .msg-user {
+            align-self: flex-end;
+            background: #d1e7dd;
+            border-bottom-right-radius: 4px;
+            font-family: monospace;
+            letter-spacing: 2px;
+            color: #555;
+        }
+
+        /* Сообщение бота (расшифровка) */
+        .msg-bot {
+            align-self: flex-start;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-bottom-left-radius: 4px;
+        }
+
+        .bot-avatar {
+            background: #eee;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .status-text {
+            margin-top: 20px;
+            color: #666;
+            font-size: 14px;
+            min-height: 24px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+
+    <!-- Экран 1: Старт -->
+    <div id="start-screen" class="screen active">
+        <div class="header" style="border:none; justify-content: center;">
+            VOICE to TEXT
+        </div>
+        <button class="btn-start" onclick="goToRecord()">СТАРТ</button>
+        <div class="settings-badge" onclick="alert('Экран настроек в разработке!')">
+            ⚙️ НАСТРОЙКИ
+        </div>
+    </div>
+
+    <!-- Экран 2: Запись -->
+    <div id="record-screen" class="screen">
+        <div class="header">
+            <button class="back-btn" onclick="goToStart()">←</button>
+            <span>Говорите...</span>
+            <span></span>
+        </div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+            <div id="micButton" class="mic-circle" onclick="toggleRecording()">🎤</div>
+            <div id="statusText" class="status-text">Нажмите на микрофон</div>
+        </div>
+    </div>
+
+    <!-- Экран 3: Чат -->
+    <div id="chat-screen" class="screen">
+        <div class="header">
+            <button class="back-btn" onclick="goToRecord()">←</button>
+            <span>Чат с Ботом</span>
+            <span>🤖</span>
+        </div>
+        <div class="chat-container" id="chatContainer">
+            <div style="text-align: center; color: #aaa; font-size: 13px; margin-bottom: 10px;">
+                Скажите что-нибудь...
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // Навигация
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+    function goToStart() { showScreen('start-screen'); }
+    function goToRecord() { showScreen('record-screen'); }
+
+    // Переменные для чата и API
+    const chatContainer = document.getElementById('chatContainer');
+    const micButton = document.getElementById('micButton');
+    const statusText = document.getElementById('statusText');
+    
+    let isRecording = false;
+    let recognition = null;
+
+    // Проверка поддержки браузера
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.continuous = false; // Останавливаемся после паузы
+        recognition.interimResults = false; // Ждем финальный результат
+        recognition.lang = 'ru-RU'; // Язык по умолчанию русский
+
+        // Что делать, когда распознали речь
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            statusText.innerText = "Распознано!";
+            stopRecordingUI();
+            sendToChat(transcript);
+        };
+
+        // Обработка ошибок
+        recognition.onerror = (event) => {
+            statusText.innerText = "Ошибка: " + event.error;
+            stopRecordingUI();
+        };
+
+        recognition.onend = () => {
+            if(isRecording) stopRecordingUI();
+        };
+    } else {
+        alert("Ваш браузер не поддерживает голосовой ввод. Используйте Google Chrome.");
+    }
+
+    function toggleRecording() {
+        if (!recognition) return;
+        if (isRecording) {
+            stopRecording();
+        } else {
+            startRecording();
+        }
+    }
+
+    function startRecording() {
+        try {
+            recognition.start();
+            isRecording = true;
+            micButton.classList.add('recording');
+            micButton.innerText = '⏺';
+            statusText.innerText = "Слушаю... Говорите!";
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    function stopRecordingUI() {
+        isRecording = false;
+        micButton.classList.remove('recording');
+        micButton.innerText = '🎤';
+    }
+
+    function stopRecording() {
+        if (recognition) {
+            recognition.stop();
+            stopRecordingUI();
+            statusText.innerText = "Запись остановлена";
+        }
+    }
+
+    // Логика отправки в чат
+    function sendToChat(realText) {
+        showScreen('chat-screen');
+
+        // 1. Шифруем текст (заменяем все буквы и цифры на X)
+        const encryptedText = realText.replace(/[a-zA-Zа-яА-ЯёЁ0-9]/g, 'X');
+
+        // 2. Добавляем сообщение пользователя (Зашифрованное)
+        const userMsg = document.createElement('div');
+        userMsg.className = 'message msg-user';
+        userMsg.innerText = encryptedText;
+        chatContainer.appendChild(userMsg);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+
+        // 3. Симулируем обработку ботом (задержка 1 сек)
+        statusText.innerText = "Бот расшифровывает...";
+        
+        setTimeout(() => {
+            // 4. Добавляем сообщение бота (Расшифровка)
+            const botMsg = document.createElement('div');
+            botMsg.className = 'message msg-bot';
+            botMsg.innerHTML = `
+                <div class="bot-avatar">🤖</div>
+                <div>
+                    <div style="font-size: 11px; color: #666; font-weight: bold;">РАСШИФРОВКА:</div>
+                    <div style="color: #333;">${realText}</div>
+                </div>
+            `;
+            chatContainer.appendChild(botMsg);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            statusText.innerText = "Готово!";
+        }, 1000);
+    }
+</script>
+
+</body>
+      </html>
