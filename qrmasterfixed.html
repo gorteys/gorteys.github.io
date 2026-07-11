@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>QR Мастер</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<style>
+body{max-width:700px;margin:30px auto;padding:20px;font-family:sans-serif;background:#f5f7fa;}
+.card{background:#fff;border-radius:16px;padding:24px;box-shadow:0 4px 12px rgba(0,0,0,0.1);margin-bottom:20px;}
+input,button,.file-label{width:100%;padding:12px;margin:8px 0;border-radius:10px;border:1px solid #ddd;font-size:16px;box-sizing:border-box;}
+button,.file-label{background:#2563eb;color:#fff;border:none;cursor:pointer;text-align:center;display:inline-block;}
+.file-label{background:#6b7280;}
+#qrContainer{display:flex;justify-content:center;margin:15px 0;min-height:256px;border:2px dashed #ccc;border-radius:8px;padding:10px;background:#fff;}
+#qrContainer img{max-width:100%;height:auto;}
+#downloadBtn{background:#16a34a;display:none;}
+#uploadPreview{max-width:100%;max-height:300px;margin:10px auto;display:none;border-radius:8px;border:1px solid #ddd;}
+.flex-row{display:flex;gap:10px;}
+.flex-row>*{flex:1;}
+.error{color:#dc2626;margin-top:8px;}
+</style>
+</head>
+<body>
+
+<h1>🔲 QR Мастер</h1>
+
+<div class="card">
+<h3>1. Создать QR из ссылки</h3>
+<input type="url" id="urlInput" placeholder="Введите ссылку" value="https://example.com">
+<div class="flex-row">
+<button id="generateBtn">Сгенерировать</button>
+<button id="downloadBtn">⬇ Скачать QR</button>
+</div>
+<div id="qrContainer"></div>
+<div id="qrError" class="error"></div>
+</div>
+
+<div class="card">
+<h3>2. Загрузить QR и распознать</h3>
+<label class="file-label" for="fileInput">📁 Выбрать изображение</label>
+<input type="file" id="fileInput" accept="image/*" style="display:none;">
+<img id="uploadPreview">
+<div id="decodeResult" style="margin-top:15px;display:none;background:#f0fdf4;padding:12px;border-radius:8px;border-left:4px solid #22c55e;">
+<strong>Распознано:</strong> <span id="decodedText"></span>
+</div>
+<div id="decodeError" class="error"></div>
+</div>
+
+<script>
+// ===== ГЕНЕРАЦИЯ QR (через контейнер) =====
+const container = document.getElementById('qrContainer');
+const urlInput = document.getElementById('urlInput');
+const generateBtn = document.getElementById('generateBtn');
+const downloadBtn = document.getElementById('downloadBtn');
+const qrError = document.getElementById('qrError');
+let qrCode = null;
+
+function generateQR() {
+    const url = urlInput.value.trim();
+    if (!url) { qrError.textContent = 'Введите ссылку!'; return; }
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        qrError.textContent = 'Ссылка должна начинаться с http:// или https://';
+        return;
+    }
+    qrError.textContent = '';
+
+    // Очищаем контейнер от старого QR
+    container.innerHTML = '';
+
+    // Создаём новый QR внутри контейнера (библиотека создаст img)
+    qrCode = new QRCode(container, {
+        text: url,
+        width: 256,
+        height: 256,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+    });
+
+    downloadBtn.style.display = 'inline-block';
+}
+
+generateBtn.addEventListener('click', generateQR);
+urlInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') generateQR(); });
+
+// Скачивание: берём картинку из контейнера
+downloadBtn.addEventListener('click', () => {
+    const img = container.querySelector('img');
+    if (!img) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth || 256;
+    canvas.height = img.naturalHeight || 256;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const link = document.createElement('a');
+    link.download = 'qrcode.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+});
+
+// ===== РАСПОЗНАВАНИЕ =====
+const fileInput = document.getElementById('fileInput');
+const uploadPreview = document.getElementById('uploadPreview');
+const decodeResult = document.getElementById('decodeResult');
+const decodedText = document.getElementById('decodedText');
+const decodeError = document.getElementById('decodeError');
+
+fileInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    decodeResult.style.display = 'none';
+    decodeError.textContent = '';
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        uploadPreview.src = ev.target.result;
+        uploadPreview.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+
+    try {
+        const image = await createImageBitmap(file);
+        const c = document.createElement('canvas');
+        c.width = image.width;
+        c.height = image.height;
+        const ctx = c.getContext('2d');
+        ctx.drawImage(image, 0, 0);
+        const data = ctx.getImageData(0, 0, c.width, c.height);
+        const code = jsQR(data.data, data.width, data.height, { inversionAttempts: "dontInvert" });
+        if (code && code.data) {
+            decodedText.textContent = code.data;
+            decodeResult.style.display = 'block';
+        } else {
+            decodeError.textContent = '❌ QR-код не найден на изображении';
+        }
+    } catch (err) {
+        decodeError.textContent = 'Ошибка: ' + err.message;
+    }
+});
+
+// Генерация при старте
+generateQR();
+</script>
+</body>
+</html>
